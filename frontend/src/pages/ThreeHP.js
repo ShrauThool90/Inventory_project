@@ -119,6 +119,78 @@ export default function ThreeHP() {
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
 
+        {/* ANALYSIS CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-all" style={{ borderLeft: '8px solid #3498db' }}>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: '#3498db' }}>📦 TOTAL AVAILABLE</p>
+              <p className="text-5xl font-extrabold" style={{ color: '#3498db' }}>
+                {components.reduce((sum, c) => sum + c.quantity, 0).toFixed(0)}
+              </p>
+              <small className="text-gray-500 mt-2 block">All components stock</small>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-all" style={{ borderLeft: '8px solid #f39c12' }}>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: '#f39c12' }}>📉 TOTAL USED</p>
+              <p className="text-5xl font-extrabold" style={{ color: '#f39c12' }}>
+                {withdrawQty > 0 ? requirements.reduce((sum, req) => {
+                  return sum + (req.required_quantity * withdrawQty);
+                }, 0).toFixed(0) : '0'}
+              </p>
+              <small className="text-gray-500 mt-2 block">Based on production</small>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-all" style={{ borderLeft: '8px solid #27ae60' }}>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: '#27ae60' }}>✅ REMAINING</p>
+              <p className="text-5xl font-extrabold" style={{ color: '#27ae60' }}>
+                {withdrawQty > 0 ? (
+                  components.reduce((sum, c) => sum + c.quantity, 0) - 
+                  requirements.reduce((sum, req) => sum + (req.required_quantity * withdrawQty), 0)
+                ).toFixed(0) : components.reduce((sum, c) => sum + c.quantity, 0).toFixed(0)}
+              </p>
+              <small className="text-gray-500 mt-2 block">After production</small>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-all" style={{ borderLeft: '8px solid #9b59b6' }}>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: '#9b59b6' }}>🎯 MAX PRODUCTION</p>
+              <p className="text-5xl font-extrabold" style={{ color: '#9b59b6' }}>{maxProduction}</p>
+              <small className="text-gray-500 mt-2 block">motors possible</small>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-all" style={{ borderLeft: '8px solid #e74c3c' }}>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: '#e74c3c' }}>⚠️ SHORTAGES</p>
+              <p className="text-5xl font-extrabold" style={{ color: '#e74c3c' }}>
+                {withdrawQty > 0 ? requirements.filter(req => {
+                  const comp = components.find(c => c.id === req.component_id);
+                  return comp && (comp.quantity < req.required_quantity * withdrawQty);
+                }).length : 0}
+              </p>
+              <small className="text-gray-500 mt-2 block">Components short</small>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-all" style={{ borderLeft: '8px solid #f39c12' }}>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: '#f39c12' }}>🔋 LOW STOCK</p>
+              <p className="text-5xl font-extrabold" style={{ color: '#f39c12' }}>
+                {requirements.filter(req => {
+                  const comp = components.find(c => c.id === req.component_id);
+                  return comp && comp.quantity < req.required_quantity;
+                }).length}
+              </p>
+              <small className="text-gray-500 mt-2 block">Below threshold</small>
+            </div>
+          </div>
+        </div>
+
         {/* Production Card */}
         <div className="bg-white border rounded-xl shadow-sm p-6 mb-8" style={{ borderColor: '#E2E2D9' }}>
           <div className="flex items-center justify-between mb-6">
