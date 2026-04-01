@@ -2,26 +2,37 @@ import React, { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 
 export default function InventoryTable({ components, onUpdateQuantity }) {
-  const [editingId, setEditingId] = useState(null);
-  const [editValue, setEditValue] = useState('');
+  const [editingValues, setEditingValues] = useState({});
 
-  const handleEdit = (component) => {
-    setEditingId(component.id);
-    setEditValue(component.quantity.toString());
+  const handleInputChange = (componentId, value) => {
+    setEditingValues(prev => ({
+      ...prev,
+      [componentId]: value
+    }));
   };
 
-  const handleSave = async (componentId) => {
-    const value = parseFloat(editValue);
-    if (!isNaN(value) && value >= 0) {
-      await onUpdateQuantity(componentId, value);
+  const handleSave = async (componentId, originalValue) => {
+    const value = editingValues[componentId];
+    if (value === undefined || value === '') {
+      return;
     }
-    setEditingId(null);
+    
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0 && numValue !== originalValue) {
+      await onUpdateQuantity(componentId, numValue);
+    }
+    
+    // Clear editing state
+    setEditingValues(prev => {
+      const newState = { ...prev };
+      delete newState[componentId];
+      return newState;
+    });
   };
 
-  const handleDirectChange = (componentId, value) => {
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue) && numValue >= 0) {
-      onUpdateQuantity(componentId, numValue);
+  const handleKeyPress = (e, componentId, originalValue) => {
+    if (e.key === 'Enter') {
+      e.target.blur(); // This will trigger onBlur which calls handleSave
     }
   };
 
@@ -76,8 +87,10 @@ export default function InventoryTable({ components, onUpdateQuantity }) {
                   <td className="px-4 py-3">
                     <input
                       type="number"
-                      value={component.quantity}
-                      onChange={(e) => handleDirectChange(component.id, e.target.value)}
+                      value={editingValues[component.id] !== undefined ? editingValues[component.id] : component.quantity}
+                      onChange={(e) => handleInputChange(component.id, e.target.value)}
+                      onBlur={() => handleSave(component.id, component.quantity)}
+                      onKeyPress={(e) => handleKeyPress(e, component.id, component.quantity)}
                       className="w-28 px-3 py-2 text-sm border-2 rounded-lg focus:outline-none focus:ring-2 transition-all text-center font-medium"
                       style={{ 
                         backgroundColor: component.quantity === 0 ? '#ffe6e6' : component.quantity < 10 ? '#fff9e6' : '#FFFFFF',
