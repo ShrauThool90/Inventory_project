@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3HP Motor System - Advanced Inventory Analysis</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-industry"></i> 3HP Motor System Analysis</h1>
+            <p class="subtitle">Production Planning & Usage Simulation</p>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <a href="index.html"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="3hp.html" class="active"><i class="fas fa-cog"></i> 3HP</a>
+            <a href="5hp.html"><i class="fas fa-cog"></i> 5HP</a>
+            <a href="7_5hp.html"><i class="fas fa-cog"></i> 7.5HP</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Analysis Cards -->
+        <div class="analysis-cards" id="analysisCards">
+            <div class="card card-primary">
+                <div class="card-icon"><i class="fas fa-boxes"></i></div>
+                <div class="card-content">
+                    <h3>Total Available</h3>
+                    <p class="card-value" id="totalAvailable">0</p>
+                    <small>All components</small>
+                </div>
+            </div>
+
+            <div class="card card-warning">
+                <div class="card-icon"><i class="fas fa-arrow-down"></i></div>
+                <div class="card-content">
+                    <h3>Total Used</h3>
+                    <p class="card-value" id="totalUsed">0</p>
+                    <small>Based on usage</small>
+                </div>
+            </div>
+
+            <div class="card card-success">
+                <div class="card-icon"><i class="fas fa-clipboard-check"></i></div>
+                <div class="card-content">
+                    <h3>Remaining Stock</h3>
+                    <p class="card-value" id="totalRemaining">0</p>
+                    <small>After production</small>
+                </div>
+            </div>
+
+            <div class="card card-info">
+                <div class="card-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="card-content">
+                    <h3>Max Production</h3>
+                    <p class="card-value" id="maxProduction">0</p>
+                    <small>motors possible</small>
+                </div>
+            </div>
+
+            <div class="card card-danger">
+                <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="card-content">
+                    <h3>Shortages</h3>
+                    <p class="card-value" id="shortageCount">0</p>
+                    <small>components</small>
+                </div>
+            </div>
+
+            <div class="card card-warning">
+                <div class="card-icon"><i class="fas fa-battery-quarter"></i></div>
+                <div class="card-content">
+                    <h3>Low Stock</h3>
+                    <p class="card-value" id="lowStockCount">0</p>
+                    <small>components</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Production Input Section -->
+        <div class="production-input">
+            <h2><i class="fas fa-calculator"></i> Usage Simulator</h2>
+            <div class="input-group">
+                <label>Enter motors to produce:</label>
+                <input type="number" id="useQuantity" min="0" value="0" placeholder="0">
+                <button onclick="calculateAnalysis()" class="btn btn-primary">
+                    <i class="fas fa-calculator"></i> Calculate Analysis
+                </button>
+                <button onclick="downloadReport()" class="btn btn-success">
+                    <i class="fas fa-download"></i> Download Report
+                </button>
+                <button onclick="performActualWithdrawal()" class="btn btn-danger">
+                    <i class="fas fa-check-circle"></i> Confirm & Withdraw
+                </button>
+            </div>
+        </div>
+
+        <!-- Alert Messages -->
+        <div id="alertMessages"></div>
+
+        <!-- Critical Component Info -->
+        <div id="criticalInfo" class="critical-box" style="display:none;">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <strong>Critical Component:</strong> <span id="criticalComponent"></span><br>
+                <small>This component is limiting your production capacity</small>
+            </div>
+        </div>
+
+        <!-- Efficiency Card -->
+        <div id="efficiencyCard" class="efficiency-card" style="display:none;">
+            <h3><i class="fas fa-tachometer-alt"></i> Production Efficiency</h3>
+            <div class="efficiency-bar">
+                <div id="efficiencyFill" class="efficiency-fill" style="width:0%"></div>
+            </div>
+            <p><strong id="efficiencyValue">0</strong>% of available stock will be utilized</p>
+        </div>
+
+        <!-- Inventory Analysis Table -->
+        <div class="table-card">
+            <h2><i class="fas fa-table"></i> Component Analysis</h2>
+            <div class="table-container">
+                <table id="analysisTable">
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Required</th>
+                            <th>Available</th>
+                            <th>Can Produce</th>
+                            <th>Use (Motors)</th>
+                            <th>Used Qty</th>
+                            <th>Remaining</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button onclick="resetInventory()" class="btn btn-secondary">
+                <i class="fas fa-undo"></i> Reset to Default
+            </button>
+            <button onclick="location.href='index.html'" class="btn btn-secondary">
+                <i class="fas fa-home"></i> Back to Dashboard
+            </button>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+    <script>
+        const MOTOR_TYPE = '3HP';
+        let currentAnalysis = null;
+
+        function loadPage() {
+            inventory = getInventory();
+            calculateAnalysis();
+        }
+
+        function calculateAnalysis() {
+            const useQty = parseInt(document.getElementById('useQuantity').value) || 0;
+            currentAnalysis = analyzeProduction(MOTOR_TYPE, useQty);
+            
+            updateAnalysisCards();
+            updateTable();
+            updateAlerts();
+            updateCriticalInfo();
+            updateEfficiency();
+        }
+
+        function updateAnalysisCards() {
+            document.getElementById('totalAvailable').textContent = formatNumber(currentAnalysis.totalAvailable);
+            document.getElementById('totalUsed').textContent = formatNumber(currentAnalysis.totalUsed);
+            document.getElementById('totalRemaining').textContent = formatNumber(currentAnalysis.totalRemaining);
+            document.getElementById('maxProduction').textContent = currentAnalysis.maxProduction;
+            document.getElementById('shortageCount').textContent = currentAnalysis.shortages.length;
+            
+            const lowStock = currentAnalysis.componentAnalysis.filter(c => c.isLowStock).length;
+            document.getElementById('lowStockCount').textContent = lowStock;
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            currentAnalysis.componentAnalysis.forEach((comp, index) => {
+                const row = document.createElement('tr');
+                
+                let statusBadge = '';
+                let rowClass = '';
+                if (comp.isShortage) {
+                    statusBadge = '<span class="badge badge-danger"><i class="fas fa-times-circle"></i> Shortage</span>';
+                    rowClass = 'row-shortage';
+                } else if (comp.isLowStock) {
+                    statusBadge = '<span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Low Stock</span>';
+                    rowClass = 'row-warning';
+                } else {
+                    statusBadge = '<span class="badge badge-success"><i class="fas fa-check-circle"></i> OK</span>';
+                }
+
+                const criticalIcon = comp.isCritical ? '<i class="fas fa-star" style="color:#f39c12"></i> ' : '';
+
+                row.className = rowClass;
+                row.innerHTML = `
+                    <td><strong>${criticalIcon}${comp.name}</strong></td>
+                    <td>${comp.required} ${comp.unit}</td>
+                    <td>
+                        <input type="number" 
+                               value="${comp.available}" 
+                               onchange="updateComponentQty('${comp.id}', this.value)"
+                               class="qty-input"
+                               min="0"
+                               step="0.1">
+                    </td>
+                    <td><strong>${comp.canProduce}</strong></td>
+                    <td><input type="number" value="${document.getElementById('useQuantity').value}" readonly class="qty-input" style="background:#f5f5f5"></td>
+                    <td class="text-warning"><strong>${formatNumber(comp.used)}</strong></td>
+                    <td class="${comp.remaining < 0 ? 'text-danger' : 'text-success'}">
+                        <strong>${formatNumber(comp.remaining)}</strong>
+                    </td>
+                    <td>${statusBadge}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateComponentQty(compId, newQty) {
+            updateQuantity(compId, newQty);
+            calculateAnalysis();
+        }
+
+        function updateAlerts() {
+            const alertDiv = document.getElementById('alertMessages');
+            alertDiv.innerHTML = '';
+
+            if (currentAnalysis.shortages.length > 0) {
+                const shortageNames = currentAnalysis.shortages.map(s => `${s.name} (short by ${formatNumber(s.shortage)})`).join(', ');
+                alertDiv.innerHTML += `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle"></i>
+                        <strong>Production Not Possible!</strong> Shortages in: ${shortageNames}
+                    </div>
+                `;
+            } else if (parseInt(document.getElementById('useQuantity').value) > 0) {
+                alertDiv.innerHTML += `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i>
+                        <strong>Production Possible!</strong> All components available.
+                    </div>
+                `;
+            }
+
+            const lowStockComps = currentAnalysis.componentAnalysis.filter(c => c.isLowStock && !c.isShortage);
+            if (lowStockComps.length > 0) {
+                const lowStockNames = lowStockComps.map(c => c.name).join(', ');
+                alertDiv.innerHTML += `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Warning!</strong> Low stock components: ${lowStockNames}
+                    </div>
+                `;
+            }
+        }
+
+        function updateCriticalInfo() {
+            const criticalDiv = document.getElementById('criticalInfo');
+            const criticalSpan = document.getElementById('criticalComponent');
+            
+            if (currentAnalysis.criticalComponent) {
+                criticalSpan.textContent = currentAnalysis.criticalComponent;
+                criticalDiv.style.display = 'flex';
+            } else {
+                criticalDiv.style.display = 'none';
+            }
+        }
+
+        function updateEfficiency() {
+            const useQty = parseInt(document.getElementById('useQuantity').value) || 0;
+            const effCard = document.getElementById('efficiencyCard');
+            
+            if (useQty > 0) {
+                const efficiency = parseFloat(currentAnalysis.efficiency);
+                document.getElementById('efficiencyValue').textContent = currentAnalysis.efficiency;
+                document.getElementById('efficiencyFill').style.width = efficiency + '%';
+                
+                if (efficiency > 75) {
+                    document.getElementById('efficiencyFill').style.backgroundColor = '#e74c3c';
+                } else if (efficiency > 50) {
+                    document.getElementById('efficiencyFill').style.backgroundColor = '#f39c12';
+                } else {
+                    document.getElementById('efficiencyFill').style.backgroundColor = '#27ae60';
+                }
+                
+                effCard.style.display = 'block';
+            } else {
+                effCard.style.display = 'none';
+            }
+        }
+
+        function downloadReport() {
+            if (!currentAnalysis) {
+                showToast('Please calculate analysis first', 'error');
+                return;
+            }
+            downloadReport(MOTOR_TYPE, currentAnalysis);
+            showToast('Report downloaded successfully', 'success');
+        }
+
+        function performActualWithdrawal() {
+            const useQty = parseInt(document.getElementById('useQuantity').value);
+            if (useQty <= 0) {
+                showToast('Please enter quantity to produce', 'error');
+                return;
+            }
+
+            if (!currentAnalysis.isPossible) {
+                showToast('Cannot withdraw - insufficient stock', 'error');
+                return;
+            }
+
+            if (confirm(`Confirm production of ${useQty} x ${MOTOR_TYPE} motors?\nThis will permanently reduce inventory.`)) {
+                const result = performWithdrawal(MOTOR_TYPE, useQty);
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    document.getElementById('useQuantity').value = 0;
+                    loadPage();
+                } else {
+                    showToast(result.message, 'error');
+                }
+            }
+        }
+
+        function resetInventory() {
+            if (confirm('Reset all components to default quantities?')) {
+                inventory = resetInventory();
+                document.getElementById('useQuantity').value = 0;
+                loadPage();
+                showToast('Inventory reset successfully', 'success');
+            }
+        }
+
+        // Auto-recalculate on use quantity change
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPage();
+            document.getElementById('useQuantity').addEventListener('input', calculateAnalysis);
+        });
+    </script>
+</body>
+</html>
