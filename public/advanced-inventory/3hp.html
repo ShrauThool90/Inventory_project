@@ -3,156 +3,427 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3HP Motor System - Advanced Inventory Analysis</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <title>3HP Motor System - Advanced Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        /* Analysis Cards */
+        .analysis-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-left: 5px solid;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+        }
+
+        .card-primary { border-color: #3498db; }
+        .card-warning { border-color: #f39c12; }
+        .card-success { border-color: #27ae60; }
+        .card-info { border-color: #9b59b6; }
+        .card-danger { border-color: #e74c3c; }
+
+        .card h3 {
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .card-value {
+            font-size: 3em;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+
+        .card-primary .card-value { color: #3498db; }
+        .card-warning .card-value { color: #f39c12; }
+        .card-success .card-value { color: #27ae60; }
+        .card-info .card-value { color: #9b59b6; }
+        .card-danger .card-value { color: #e74c3c; }
+
+        .card small {
+            color: #95a5a6;
+            font-size: 0.9em;
+        }
+
+        /* Input Section */
+        .input-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .input-section h2 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group input {
+            padding: 12px 20px;
+            border: 2px solid #dfe6e9;
+            border-radius: 10px;
+            font-size: 1.2em;
+            width: 150px;
+            text-align: center;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-color: #27ae60;
+            color: #155724;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-color: #f39c12;
+            color: #856404;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            border-color: #e74c3c;
+            color: #721c24;
+        }
+
+        /* Critical Box */
+        .critical-box {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border-left: 5px solid #f39c12;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .critical-box strong {
+            color: #856404;
+            font-size: 1.1em;
+        }
+
+        /* Efficiency */
+        .efficiency-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .efficiency-bar {
+            height: 40px;
+            background: #ecf0f1;
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .efficiency-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #27ae60, #229954);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+        }
+
+        /* Table */
+        .table-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .row-shortage {
+            background: #ffebee;
+        }
+
+        .row-warning {
+            background: #fff9e6;
+        }
+
+        .qty-input {
+            width: 100px;
+            padding: 8px;
+            border: 2px solid #dfe6e9;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .text-success { color: #27ae60; }
+        .text-danger { color: #e74c3c; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 18px 25px;
+            background: #2c3e50;
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast-success {
+            background: linear-gradient(135deg, #27ae60, #229954);
+        }
+
+        .toast-error {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <div class="container">
-            <h1><i class="fas fa-industry"></i> 3HP Motor System Analysis</h1>
-            <p class="subtitle">Production Planning & Usage Simulation</p>
-        </div>
-    </header>
-
-    <nav>
-        <div class="container">
-            <a href="index.html"><i class="fas fa-home"></i> Dashboard</a>
-            <a href="3hp.html" class="active"><i class="fas fa-cog"></i> 3HP</a>
-            <a href="5hp.html"><i class="fas fa-cog"></i> 5HP</a>
-            <a href="7_5hp.html"><i class="fas fa-cog"></i> 7.5HP</a>
-        </div>
-    </nav>
-
     <div class="container">
+        <header>
+            <h1>⚡ 3HP Motor System Analysis</h1>
+            <p>Production Planning & Usage Simulation</p>
+        </header>
+
         <!-- Analysis Cards -->
-        <div class="analysis-cards" id="analysisCards">
+        <div class="analysis-cards">
             <div class="card card-primary">
-                <div class="card-icon"><i class="fas fa-boxes"></i></div>
-                <div class="card-content">
-                    <h3>Total Available</h3>
-                    <p class="card-value" id="totalAvailable">0</p>
-                    <small>All components</small>
-                </div>
+                <h3>📦 Total Available</h3>
+                <div class="card-value" id="totalAvailable">0</div>
+                <small>All components stock</small>
             </div>
 
             <div class="card card-warning">
-                <div class="card-icon"><i class="fas fa-arrow-down"></i></div>
-                <div class="card-content">
-                    <h3>Total Used</h3>
-                    <p class="card-value" id="totalUsed">0</p>
-                    <small>Based on usage</small>
-                </div>
+                <h3>📉 Total Used</h3>
+                <div class="card-value" id="totalUsed">0</div>
+                <small>Based on usage input</small>
             </div>
 
             <div class="card card-success">
-                <div class="card-icon"><i class="fas fa-clipboard-check"></i></div>
-                <div class="card-content">
-                    <h3>Remaining Stock</h3>
-                    <p class="card-value" id="totalRemaining">0</p>
-                    <small>After production</small>
-                </div>
+                <h3>✅ Remaining Stock</h3>
+                <div class="card-value" id="totalRemaining">0</div>
+                <small>After production</small>
             </div>
 
             <div class="card card-info">
-                <div class="card-icon"><i class="fas fa-chart-line"></i></div>
-                <div class="card-content">
-                    <h3>Max Production</h3>
-                    <p class="card-value" id="maxProduction">0</p>
-                    <small>motors possible</small>
-                </div>
+                <h3>🎯 Max Production</h3>
+                <div class="card-value" id="maxProduction">0</div>
+                <small>motors possible</small>
             </div>
 
             <div class="card card-danger">
-                <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                <div class="card-content">
-                    <h3>Shortages</h3>
-                    <p class="card-value" id="shortageCount">0</p>
-                    <small>components</small>
-                </div>
+                <h3>⚠️ Shortages</h3>
+                <div class="card-value" id="shortageCount">0</div>
+                <small>components</small>
             </div>
 
             <div class="card card-warning">
-                <div class="card-icon"><i class="fas fa-battery-quarter"></i></div>
-                <div class="card-content">
-                    <h3>Low Stock</h3>
-                    <p class="card-value" id="lowStockCount">0</p>
-                    <small>components</small>
-                </div>
+                <h3>🔋 Low Stock</h3>
+                <div class="card-value" id="lowStockCount">0</div>
+                <small>components</small>
             </div>
         </div>
 
-        <!-- Production Input Section -->
-        <div class="production-input">
-            <h2><i class="fas fa-calculator"></i> Usage Simulator</h2>
+        <!-- Input Section -->
+        <div class="input-section">
+            <h2>🧮 Usage Simulator</h2>
             <div class="input-group">
-                <label>Enter motors to produce:</label>
-                <input type="number" id="useQuantity" min="0" value="0" placeholder="0">
-                <button onclick="calculateAnalysis()" class="btn btn-primary">
-                    <i class="fas fa-calculator"></i> Calculate Analysis
-                </button>
-                <button onclick="downloadReport()" class="btn btn-success">
-                    <i class="fas fa-download"></i> Download Report
-                </button>
-                <button onclick="performActualWithdrawal()" class="btn btn-danger">
-                    <i class="fas fa-check-circle"></i> Confirm & Withdraw
-                </button>
+                <label><strong>Enter motors to produce:</strong></label>
+                <input type="number" id="useQuantity" min="0" value="0">
+                <button onclick="calculateAnalysis()" class="btn btn-primary">📊 Calculate</button>
+                <button onclick="downloadReport()" class="btn btn-success">💾 Download Report</button>
+                <button onclick="performWithdrawal()" class="btn btn-danger">✔️ Confirm & Withdraw</button>
             </div>
         </div>
 
-        <!-- Alert Messages -->
+        <!-- Alerts -->
         <div id="alertMessages"></div>
 
-        <!-- Critical Component Info -->
+        <!-- Critical Component -->
         <div id="criticalInfo" class="critical-box" style="display:none;">
-            <i class="fas fa-info-circle"></i>
-            <div>
-                <strong>Critical Component:</strong> <span id="criticalComponent"></span><br>
-                <small>This component is limiting your production capacity</small>
-            </div>
+            <strong>🎯 Critical Component:</strong> <span id="criticalComponent"></span><br>
+            <small>This component is limiting your production capacity</small>
         </div>
 
-        <!-- Efficiency Card -->
+        <!-- Efficiency -->
         <div id="efficiencyCard" class="efficiency-card" style="display:none;">
-            <h3><i class="fas fa-tachometer-alt"></i> Production Efficiency</h3>
+            <h3>⚡ Production Efficiency</h3>
             <div class="efficiency-bar">
                 <div id="efficiencyFill" class="efficiency-fill" style="width:0%"></div>
             </div>
             <p><strong id="efficiencyValue">0</strong>% of available stock will be utilized</p>
         </div>
 
-        <!-- Inventory Analysis Table -->
-        <div class="table-card">
-            <h2><i class="fas fa-table"></i> Component Analysis</h2>
-            <div class="table-container">
-                <table id="analysisTable">
-                    <thead>
-                        <tr>
-                            <th>Component</th>
-                            <th>Required</th>
-                            <th>Available</th>
-                            <th>Can Produce</th>
-                            <th>Use (Motors)</th>
-                            <th>Used Qty</th>
-                            <th>Remaining</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        <!-- Populated by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <button onclick="resetInventory()" class="btn btn-secondary">
-                <i class="fas fa-undo"></i> Reset to Default
-            </button>
-            <button onclick="location.href='index.html'" class="btn btn-secondary">
-                <i class="fas fa-home"></i> Back to Dashboard
-            </button>
+        <!-- Table -->
+        <div class="table-section">
+            <h2>📋 Component Analysis</h2>
+            <table id="analysisTable">
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Required</th>
+                        <th>Available</th>
+                        <th>Can Produce</th>
+                        <th>Used</th>
+                        <th>Remaining</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Populated by JS -->
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -171,70 +442,65 @@
             const useQty = parseInt(document.getElementById('useQuantity').value) || 0;
             currentAnalysis = analyzeProduction(MOTOR_TYPE, useQty);
             
-            updateAnalysisCards();
+            updateCards();
             updateTable();
             updateAlerts();
-            updateCriticalInfo();
+            updateCritical();
             updateEfficiency();
         }
 
-        function updateAnalysisCards() {
-            document.getElementById('totalAvailable').textContent = formatNumber(currentAnalysis.totalAvailable);
-            document.getElementById('totalUsed').textContent = formatNumber(currentAnalysis.totalUsed);
-            document.getElementById('totalRemaining').textContent = formatNumber(currentAnalysis.totalRemaining);
+        function updateCards() {
+            if (!currentAnalysis) return;
+            
+            document.getElementById('totalAvailable').textContent = Math.round(currentAnalysis.totalAvailable);
+            document.getElementById('totalUsed').textContent = Math.round(currentAnalysis.totalUsed);
+            document.getElementById('totalRemaining').textContent = Math.round(currentAnalysis.totalRemaining);
             document.getElementById('maxProduction').textContent = currentAnalysis.maxProduction;
             document.getElementById('shortageCount').textContent = currentAnalysis.shortages.length;
-            
-            const lowStock = currentAnalysis.componentAnalysis.filter(c => c.isLowStock).length;
-            document.getElementById('lowStockCount').textContent = lowStock;
+            document.getElementById('lowStockCount').textContent = 
+                currentAnalysis.componentAnalysis.filter(c => c.isLowStock).length;
         }
 
         function updateTable() {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
 
-            currentAnalysis.componentAnalysis.forEach((comp, index) => {
-                const row = document.createElement('tr');
+            currentAnalysis.componentAnalysis.forEach(comp => {
+                const row = tbody.insertRow();
                 
-                let statusBadge = '';
-                let rowClass = '';
+                let statusBadge, rowClass = '';
                 if (comp.isShortage) {
-                    statusBadge = '<span class="badge badge-danger"><i class="fas fa-times-circle"></i> Shortage</span>';
+                    statusBadge = '<span class="badge badge-danger">❌ Shortage</span>';
                     rowClass = 'row-shortage';
                 } else if (comp.isLowStock) {
-                    statusBadge = '<span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Low Stock</span>';
+                    statusBadge = '<span class="badge badge-warning">⚠️ Low</span>';
                     rowClass = 'row-warning';
                 } else {
-                    statusBadge = '<span class="badge badge-success"><i class="fas fa-check-circle"></i> OK</span>';
+                    statusBadge = '<span class="badge badge-success">✅ OK</span>';
                 }
 
-                const criticalIcon = comp.isCritical ? '<i class="fas fa-star" style="color:#f39c12"></i> ' : '';
+                const star = comp.isCritical ? '⭐ ' : '';
 
                 row.className = rowClass;
                 row.innerHTML = `
-                    <td><strong>${criticalIcon}${comp.name}</strong></td>
+                    <td><strong>${star}${comp.name}</strong></td>
                     <td>${comp.required} ${comp.unit}</td>
                     <td>
-                        <input type="number" 
-                               value="${comp.available}" 
-                               onchange="updateComponentQty('${comp.id}', this.value)"
-                               class="qty-input"
-                               min="0"
-                               step="0.1">
+                        <input type="number" value="${comp.available}" 
+                               onchange="updateComp('${comp.id}', this.value)"
+                               class="qty-input" min="0" step="0.1">
                     </td>
                     <td><strong>${comp.canProduce}</strong></td>
-                    <td><input type="number" value="${document.getElementById('useQuantity').value}" readonly class="qty-input" style="background:#f5f5f5"></td>
-                    <td class="text-warning"><strong>${formatNumber(comp.used)}</strong></td>
+                    <td class="text-danger"><strong>${comp.used.toFixed(1)}</strong></td>
                     <td class="${comp.remaining < 0 ? 'text-danger' : 'text-success'}">
-                        <strong>${formatNumber(comp.remaining)}</strong>
+                        <strong>${comp.remaining.toFixed(1)}</strong>
                     </td>
                     <td>${statusBadge}</td>
                 `;
-                tbody.appendChild(row);
             });
         }
 
-        function updateComponentQty(compId, newQty) {
+        function updateComp(compId, newQty) {
             updateQuantity(compId, newQty);
             calculateAnalysis();
         }
@@ -244,92 +510,72 @@
             alertDiv.innerHTML = '';
 
             if (currentAnalysis.shortages.length > 0) {
-                const shortageNames = currentAnalysis.shortages.map(s => `${s.name} (short by ${formatNumber(s.shortage)})`).join(', ');
+                const names = currentAnalysis.shortages.map(s => 
+                    `${s.name} (short: ${s.shortage.toFixed(1)})`
+                ).join(', ');
                 alertDiv.innerHTML += `
                     <div class="alert alert-danger">
-                        <i class="fas fa-times-circle"></i>
-                        <strong>Production Not Possible!</strong> Shortages in: ${shortageNames}
+                        <strong>❌ Production Not Possible!</strong><br>
+                        Shortages in: ${names}
                     </div>
                 `;
             } else if (parseInt(document.getElementById('useQuantity').value) > 0) {
                 alertDiv.innerHTML += `
                     <div class="alert alert-success">
-                        <i class="fas fa-check-circle"></i>
-                        <strong>Production Possible!</strong> All components available.
+                        <strong>✅ Production Possible!</strong> All components available.
                     </div>
                 `;
             }
 
-            const lowStockComps = currentAnalysis.componentAnalysis.filter(c => c.isLowStock && !c.isShortage);
-            if (lowStockComps.length > 0) {
-                const lowStockNames = lowStockComps.map(c => c.name).join(', ');
+            const lowStock = currentAnalysis.componentAnalysis.filter(c => c.isLowStock && !c.isShortage);
+            if (lowStock.length > 0) {
                 alertDiv.innerHTML += `
                     <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Warning!</strong> Low stock components: ${lowStockNames}
+                        <strong>⚠️ Warning!</strong> ${lowStock.length} component(s) have low stock
                     </div>
                 `;
             }
         }
 
-        function updateCriticalInfo() {
-            const criticalDiv = document.getElementById('criticalInfo');
-            const criticalSpan = document.getElementById('criticalComponent');
-            
+        function updateCritical() {
+            const box = document.getElementById('criticalInfo');
             if (currentAnalysis.criticalComponent) {
-                criticalSpan.textContent = currentAnalysis.criticalComponent;
-                criticalDiv.style.display = 'flex';
+                document.getElementById('criticalComponent').textContent = currentAnalysis.criticalComponent;
+                box.style.display = 'block';
             } else {
-                criticalDiv.style.display = 'none';
+                box.style.display = 'none';
             }
         }
 
         function updateEfficiency() {
             const useQty = parseInt(document.getElementById('useQuantity').value) || 0;
-            const effCard = document.getElementById('efficiencyCard');
+            const card = document.getElementById('efficiencyCard');
             
             if (useQty > 0) {
-                const efficiency = parseFloat(currentAnalysis.efficiency);
-                document.getElementById('efficiencyValue').textContent = currentAnalysis.efficiency;
-                document.getElementById('efficiencyFill').style.width = efficiency + '%';
-                
-                if (efficiency > 75) {
-                    document.getElementById('efficiencyFill').style.backgroundColor = '#e74c3c';
-                } else if (efficiency > 50) {
-                    document.getElementById('efficiencyFill').style.backgroundColor = '#f39c12';
-                } else {
-                    document.getElementById('efficiencyFill').style.backgroundColor = '#27ae60';
-                }
-                
-                effCard.style.display = 'block';
+                const eff = parseFloat(currentAnalysis.efficiency);
+                document.getElementById('efficiencyValue').textContent = eff.toFixed(1);
+                document.getElementById('efficiencyFill').style.width = eff + '%';
+                document.getElementById('efficiencyFill').textContent = eff.toFixed(1) + '%';
+                card.style.display = 'block';
             } else {
-                effCard.style.display = 'none';
+                card.style.display = 'none';
             }
         }
 
-        function downloadReport() {
-            if (!currentAnalysis) {
-                showToast('Please calculate analysis first', 'error');
-                return;
-            }
-            downloadReport(MOTOR_TYPE, currentAnalysis);
-            showToast('Report downloaded successfully', 'success');
-        }
-
-        function performActualWithdrawal() {
-            const useQty = parseInt(document.getElementById('useQuantity').value);
-            if (useQty <= 0) {
-                showToast('Please enter quantity to produce', 'error');
+        function performWithdrawal() {
+            const qty = parseInt(document.getElementById('useQuantity').value);
+            if (qty <= 0) {
+                showToast('Please enter quantity', 'error');
                 return;
             }
 
             if (!currentAnalysis.isPossible) {
-                showToast('Cannot withdraw - insufficient stock', 'error');
+                showToast('Insufficient stock!', 'error');
                 return;
             }
 
-            if (confirm(`Confirm production of ${useQty} x ${MOTOR_TYPE} motors?\nThis will permanently reduce inventory.`)) {
-                const result = performWithdrawal(MOTOR_TYPE, useQty);
+            if (confirm(`Confirm production of ${qty} x ${MOTOR_TYPE} motors?`)) {
+                const result = performWithdrawal(MOTOR_TYPE, qty);
                 if (result.success) {
                     showToast(result.message, 'success');
                     document.getElementById('useQuantity').value = 0;
@@ -340,20 +586,11 @@
             }
         }
 
-        function resetInventory() {
-            if (confirm('Reset all components to default quantities?')) {
-                inventory = resetInventory();
-                document.getElementById('useQuantity').value = 0;
-                loadPage();
-                showToast('Inventory reset successfully', 'success');
-            }
-        }
-
-        // Auto-recalculate on use quantity change
-        document.addEventListener('DOMContentLoaded', () => {
+        // Auto-calculate on input change
+        window.onload = () => {
             loadPage();
             document.getElementById('useQuantity').addEventListener('input', calculateAnalysis);
-        });
+        };
     </script>
 </body>
 </html>
