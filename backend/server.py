@@ -183,31 +183,42 @@ async def calculate_max_production():
     
     # Create component lookup
     component_map = {comp['id']: comp['quantity'] for comp in components}
+    component_name_map = {comp['id']: comp['name'] for comp in components}
     
     # Group requirements by motor type
     motor_types = ['3HP', '5HP', '7.5HP']
     max_production = {}
+    critical_components = {}
     
     for motor_type in motor_types:
         motor_reqs = [r for r in requirements if r['motor_type'] == motor_type]
         
         if not motor_reqs:
             max_production[motor_type] = 0
+            critical_components[motor_type] = None
             continue
         
-        # Calculate max motors based on minimum ratio
+        # Calculate max motors based on minimum ratio and find critical component
         max_motors = float('inf')
+        critical_comp_id = None
+        
         for req in motor_reqs:
             available = component_map.get(req['component_id'], 0)
             required = req['required_quantity']
             
             if required > 0:
                 possible = int(available // required)
-                max_motors = min(max_motors, possible)
+                if possible < max_motors:
+                    max_motors = possible
+                    critical_comp_id = req['component_id']
         
         max_production[motor_type] = max_motors if max_motors != float('inf') else 0
+        critical_components[motor_type] = component_name_map.get(critical_comp_id) if critical_comp_id else None
     
-    return max_production
+    return {
+        "production": max_production,
+        "critical_components": critical_components
+    }
 
 
 @api_router.post("/withdraw")

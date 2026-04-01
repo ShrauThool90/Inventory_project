@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Package, AlertCircle, CheckCircle2, TrendingUp, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 import InventoryTable from '../components/InventoryTable';
-import MotorCard from '../components/MotorCard';
-import FeasibilityChecker from '../components/FeasibilityChecker';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -12,6 +11,7 @@ const API = `${BACKEND_URL}/api`;
 export default function Dashboard() {
   const [components, setComponents] = useState([]);
   const [maxProduction, setMaxProduction] = useState({ '3HP': 0, '5HP': 0, '7.5HP': 0 });
+  const [criticalComponents, setCriticalComponents] = useState({ '3HP': null, '5HP': null, '7.5HP': null });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,7 +26,8 @@ export default function Dashboard() {
         axios.get(`${API}/calculate-max-production`)
       ]);
       setComponents(componentsRes.data);
-      setMaxProduction(maxProdRes.data);
+      setMaxProduction(maxProdRes.data.production);
+      setCriticalComponents(maxProdRes.data.critical_components);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load data');
@@ -48,31 +49,10 @@ export default function Dashboard() {
     }
   };
 
-  const handleWithdraw = async (motorType, quantity) => {
-    try {
-      const response = await axios.post(`${API}/withdraw`, {
-        motor_type: motorType,
-        quantity: quantity
-      });
-
-      if (response.data.success) {
-        toast.success(response.data.message);
-        await fetchData();
-      } else {
-        const shortage = response.data.insufficient_components
-          .map(comp => `${comp.component}: need ${comp.shortage} more`)
-          .join(', ');
-        toast.error(`Insufficient stock: ${shortage}`);
-      }
-    } catch (error) {
-      console.error('Error withdrawing:', error);
-      toast.error('Failed to withdraw components');
-    }
-  };
-
   // Calculate stats
   const totalComponents = components.length;
-  const lowStockCount = components.filter(c => c.quantity < 40).length;
+  const lowStockCount = components.filter(c => c.quantity < 10).length;
+  const criticalCount = components.filter(c => c.quantity === 0).length;
   const totalValue = components.reduce((sum, c) => sum + c.quantity, 0);
 
   if (loading) {
@@ -98,16 +78,79 @@ export default function Dashboard() {
               </div>
               <div>
                 <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight" style={{ color: '#1E231D', fontFamily: 'Outfit, sans-serif' }}>
-                  Solar Pump Inventory
+                  Solar Pump Inventory Dashboard
                 </h1>
-                <p className="text-sm mt-1" style={{ color: '#596157' }}>Balance of System Components Management</p>
+                <p className="text-sm mt-1" style={{ color: '#596157' }}>Balance of System Components Management & Analysis</p>
               </div>
             </div>
           </div>
         </div>
       </header>
 
+      {/* Navigation */}
+      <div className="max-w-[1600px] mx-auto px-4 md:px-8 mt-6">
+        <nav className="bg-white border rounded-xl p-4 shadow-sm" style={{ borderColor: '#E2E2D9' }}>
+          <div className="flex flex-wrap gap-3">
+            <Link to="/" className="px-6 py-2 rounded-lg font-medium transition-all" style={{ backgroundColor: '#2c3e50', color: 'white' }}>
+              📊 Dashboard
+            </Link>
+            <Link to="/3hp" className="px-6 py-2 rounded-lg font-medium transition-all" style={{ backgroundColor: '#f8f9fa', color: '#2c3e50' }}
+              onMouseEnter={(e) => { e.target.style.backgroundColor = '#3498db'; e.target.style.color = 'white'; }}
+              onMouseLeave={(e) => { e.target.style.backgroundColor = '#f8f9fa'; e.target.style.color = '#2c3e50'; }}>
+              🔧 3HP System
+            </Link>
+            <Link to="/5hp" className="px-6 py-2 rounded-lg font-medium transition-all" style={{ backgroundColor: '#f8f9fa', color: '#2c3e50' }}
+              onMouseEnter={(e) => { e.target.style.backgroundColor = '#3498db'; e.target.style.color = 'white'; }}
+              onMouseLeave={(e) => { e.target.style.backgroundColor = '#f8f9fa'; e.target.style.color = '#2c3e50'; }}>
+              🔧 5HP System
+            </Link>
+            <Link to="/7-5hp" className="px-6 py-2 rounded-lg font-medium transition-all" style={{ backgroundColor: '#f8f9fa', color: '#2c3e50' }}
+              onMouseEnter={(e) => { e.target.style.backgroundColor = '#3498db'; e.target.style.color = 'white'; }}
+              onMouseLeave={(e) => { e.target.style.backgroundColor = '#f8f9fa'; e.target.style.color = '#2c3e50'; }}>
+              🔧 7.5HP System
+            </Link>
+          </div>
+        </nav>
+      </div>
+
       <main className="max-w-[1600px] mx-auto p-4 md:p-8">
+        {/* Alert Messages */}
+        {criticalCount > 0 && (
+          <div className="mb-6 p-4 rounded-lg border-l-4" style={{ backgroundColor: '#f8d7da', borderColor: '#e74c3c', color: '#721c24' }}>
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-6 h-6" />
+              <div>
+                <strong className="font-semibold">🚨 Critical Alert!</strong>
+                <p className="text-sm mt-1">{criticalCount} component(s) are completely out of stock. Production is halted!</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {lowStockCount > 0 && criticalCount === 0 && (
+          <div className="mb-6 p-4 rounded-lg border-l-4" style={{ backgroundColor: '#fff3cd', borderColor: '#f39c12', color: '#856404' }}>
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-6 h-6" />
+              <div>
+                <strong className="font-semibold">⚠️ Low Stock Warning!</strong>
+                <p className="text-sm mt-1">{lowStockCount} component(s) are running low (below 10 units). Please restock soon.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {criticalCount === 0 && lowStockCount === 0 && (
+          <div className="mb-6 p-4 rounded-lg border-l-4" style={{ backgroundColor: '#d4edda', borderColor: '#27ae60', color: '#155724' }}>
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="w-6 h-6" />
+              <div>
+                <strong className="font-semibold">✅ All Systems Operational!</strong>
+                <p className="text-sm mt-1">Inventory levels are healthy. All motor types can be produced.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-white border rounded-xl shadow-sm p-6" style={{ borderColor: '#E2E2D9' }} data-testid="stat-total-components">
@@ -115,8 +158,20 @@ export default function Dashboard() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Total Components</p>
                 <p className="text-2xl font-semibold mt-2" style={{ color: '#1E231D' }}>{totalComponents}</p>
+                <small style={{ color: '#7f8c8d' }}>Different component types</small>
               </div>
               <Package className="w-8 h-8" style={{ color: '#3A5C45', opacity: 0.6 }} />
+            </div>
+          </div>
+
+          <div className="bg-white border rounded-xl shadow-sm p-6" style={{ borderColor: '#E2E2D9' }} data-testid="stat-total-stock">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Total Stock</p>
+                <p className="text-2xl font-semibold mt-2" style={{ color: '#1E231D' }}>{totalValue.toFixed(0)}</p>
+                <small style={{ color: '#7f8c8d' }}>Total units available</small>
+              </div>
+              <TrendingUp className="w-8 h-8" style={{ color: '#2B593F', opacity: 0.6 }} />
             </div>
           </div>
 
@@ -124,68 +179,67 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Low Stock Items</p>
-                <p className="text-2xl font-semibold mt-2" style={{ color: lowStockCount > 0 ? '#A33022' : '#1E231D' }}>{lowStockCount}</p>
+                <p className="text-2xl font-semibold mt-2" style={{ color: lowStockCount > 0 ? '#f39c12' : '#1E231D' }}>{lowStockCount}</p>
+                <small style={{ color: '#7f8c8d' }}>Below 10 units</small>
               </div>
               <AlertCircle className="w-8 h-8" style={{ color: '#B36B00', opacity: 0.6 }} />
             </div>
           </div>
 
-          <div className="bg-white border rounded-xl shadow-sm p-6" style={{ borderColor: '#E2E2D9' }} data-testid="stat-total-stock">
+          <div className="bg-white border rounded-xl shadow-sm p-6" style={{ borderColor: '#E2E2D9' }} data-testid="stat-critical">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Total Stock Units</p>
-                <p className="text-2xl font-semibold mt-2" style={{ color: '#1E231D' }}>{totalValue.toFixed(0)}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Critical Items</p>
+                <p className="text-2xl font-semibold mt-2" style={{ color: criticalCount > 0 ? '#e74c3c' : '#1E231D' }}>{criticalCount}</p>
+                <small style={{ color: '#7f8c8d' }}>Out of stock</small>
               </div>
-              <TrendingUp className="w-8 h-8" style={{ color: '#2B593F', opacity: 0.6 }} />
-            </div>
-          </div>
-
-          <div className="bg-white border rounded-xl shadow-sm p-6" style={{ borderColor: '#E2E2D9' }} data-testid="stat-max-production">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Max Production (3HP)</p>
-                <p className="text-2xl font-semibold mt-2" style={{ color: '#1E231D' }}>{maxProduction['3HP']}</p>
-              </div>
-              <CheckCircle2 className="w-8 h-8" style={{ color: '#2B593F', opacity: 0.6 }} />
+              <AlertCircle className="w-8 h-8" style={{ color: '#e74c3c', opacity: 0.6 }} />
             </div>
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Inventory Table */}
-          <div className="lg:col-span-8">
-            <InventoryTable 
-              components={components} 
-              onUpdateQuantity={updateComponentQuantity}
-            />
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            {/* Motor Production Cards */}
-            <MotorCard 
-              motorType="3HP"
-              maxProduction={maxProduction['3HP']}
-              onWithdraw={handleWithdraw}
-            />
-            
-            <MotorCard 
-              motorType="5HP"
-              maxProduction={maxProduction['5HP']}
-              onWithdraw={handleWithdraw}
-            />
-            
-            <MotorCard 
-              motorType="7.5HP"
-              maxProduction={maxProduction['7.5HP']}
-              onWithdraw={handleWithdraw}
-            />
-
-            {/* Feasibility Checker */}
-            <FeasibilityChecker />
+        {/* Production Capacity Analysis */}
+        <div className="bg-white border rounded-xl shadow-sm p-6 mb-8" style={{ borderColor: '#E2E2D9' }}>
+          <h2 className="text-xl font-semibold mb-6" style={{ color: '#1E231D', fontFamily: 'Outfit, sans-serif' }}>🏭 Production Capacity Analysis</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-6 rounded-xl" style={{ backgroundColor: '#e3f2fd' }}>
+              <div className="inline-block px-6 py-2 rounded-full font-bold text-lg mb-3" style={{ background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)', color: 'white' }}>3HP</div>
+              <div className="text-4xl font-bold mb-2" style={{ color: '#3498db' }}>{maxProduction['3HP'] || 0}</div>
+              <p className="text-sm" style={{ color: '#7f8c8d' }}>Maximum motors</p>
+              {criticalComponents['3HP'] && (
+                <div className="mt-3 p-2 rounded text-xs font-medium" style={{ backgroundColor: '#fff3cd', color: '#856404' }}>
+                  🎯 Limited by: <strong>{criticalComponents['3HP']}</strong>
+                </div>
+              )}
+            </div>
+            <div className="text-center p-6 rounded-xl" style={{ backgroundColor: '#fff8e1' }}>
+              <div className="inline-block px-6 py-2 rounded-full font-bold text-lg mb-3" style={{ background: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)', color: 'white' }}>5HP</div>
+              <div className="text-4xl font-bold mb-2" style={{ color: '#f39c12' }}>{maxProduction['5HP'] || 0}</div>
+              <p className="text-sm" style={{ color: '#7f8c8d' }}>Maximum motors</p>
+              {criticalComponents['5HP'] && (
+                <div className="mt-3 p-2 rounded text-xs font-medium" style={{ backgroundColor: '#fff3cd', color: '#856404' }}>
+                  🎯 Limited by: <strong>{criticalComponents['5HP']}</strong>
+                </div>
+              )}
+            </div>
+            <div className="text-center p-6 rounded-xl" style={{ backgroundColor: '#ffebee' }}>
+              <div className="inline-block px-6 py-2 rounded-full font-bold text-lg mb-3" style={{ background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)', color: 'white' }}>7.5HP</div>
+              <div className="text-4xl font-bold mb-2" style={{ color: '#e74c3c' }}>{maxProduction['7.5HP'] || 0}</div>
+              <p className="text-sm" style={{ color: '#7f8c8d' }}>Maximum motors</p>
+              {criticalComponents['7.5HP'] && (
+                <div className="mt-3 p-2 rounded text-xs font-medium" style={{ backgroundColor: '#fff3cd', color: '#856404' }}>
+                  🎯 Limited by: <strong>{criticalComponents['7.5HP']}</strong>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Inventory Table */}
+        <InventoryTable 
+          components={components} 
+          onUpdateQuantity={updateComponentQuantity}
+        />
       </main>
     </div>
   );

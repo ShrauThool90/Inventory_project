@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertCircle, Plus, Minus } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 export default function InventoryTable({ components, onUpdateQuantity }) {
   const [editingId, setEditingId] = useState(null);
@@ -18,19 +18,16 @@ export default function InventoryTable({ components, onUpdateQuantity }) {
     setEditingId(null);
   };
 
-  const handleIncrement = (component) => {
-    onUpdateQuantity(component.id, component.quantity + 1);
-  };
-
-  const handleDecrement = (component) => {
-    if (component.quantity > 0) {
-      onUpdateQuantity(component.id, component.quantity - 1);
+  const handleDirectChange = (componentId, value) => {
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0) {
+      onUpdateQuantity(componentId, numValue);
     }
   };
 
   const getStockStatus = (quantity) => {
-    if (quantity === 0) return { label: 'Out of Stock', color: '#A33022', bgColor: '#FAECEB' };
-    if (quantity < 40) return { label: 'Low Stock', color: '#B36B00', bgColor: '#FDF3E1' };
+    if (quantity === 0) return { label: 'Critical', color: '#A33022', bgColor: '#FAECEB' };
+    if (quantity < 10) return { label: 'Low Stock', color: '#B36B00', bgColor: '#FDF3E1' };
     return { label: 'In Stock', color: '#2B593F', bgColor: '#E8F0EA' };
   };
 
@@ -40,7 +37,7 @@ export default function InventoryTable({ components, onUpdateQuantity }) {
         <h2 className="text-xl sm:text-2xl font-medium tracking-tight" style={{ color: '#1E231D', fontFamily: 'Outfit, sans-serif' }}>
           Inventory Components
         </h2>
-        <p className="text-sm mt-1" style={{ color: '#596157' }}>Manage stock levels and track component availability</p>
+        <p className="text-sm mt-1" style={{ color: '#596157' }}>Manage stock levels - click to edit quantities directly</p>
       </div>
 
       <div className="overflow-x-auto" data-testid="inventory-table">
@@ -52,19 +49,20 @@ export default function InventoryTable({ components, onUpdateQuantity }) {
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Unit</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Quantity</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Status</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {components.map((component) => {
               const status = getStockStatus(component.quantity);
+              const rowBgColor = component.quantity === 0 ? '#ffe6e6' : component.quantity < 10 ? '#fff9e6' : 'transparent';
+              
               return (
                 <tr 
                   key={component.id} 
                   className="border-b transition-colors duration-150"
-                  style={{ borderColor: '#E2E2D9' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F9F9F7'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  style={{ borderColor: '#E2E2D9', backgroundColor: rowBgColor }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = component.quantity === 0 ? '#ffcccc' : component.quantity < 10 ? '#fff3cc' : '#F9F9F7'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = rowBgColor}
                   data-testid={`row-${component.id}`}
                 >
                   <td className="px-4 py-3 text-sm font-medium" style={{ color: '#1E231D' }}>
@@ -76,37 +74,20 @@ export default function InventoryTable({ components, onUpdateQuantity }) {
                   <td className="px-4 py-3 text-sm" style={{ color: '#596157' }}>{component.category}</td>
                   <td className="px-4 py-3 text-sm" style={{ color: '#596157' }}>{component.unit}</td>
                   <td className="px-4 py-3">
-                    {editingId === component.id ? (
-                      <input
-                        type="number"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onBlur={() => handleSave(component.id)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSave(component.id)}
-                        className="w-24 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-all"
-                        style={{ 
-                          backgroundColor: '#FFFFFF', 
-                          borderColor: '#E2E2D9',
-                          color: '#1E231D'
-                        }}
-                        autoFocus
-                        data-testid={`input-${component.id}`}
-                      />
-                    ) : (
-                      <span 
-                        onClick={() => handleEdit(component)}
-                        className="cursor-pointer text-sm font-medium px-3 py-2 rounded-lg inline-block transition-colors"
-                        style={{ 
-                          color: component.quantity === 0 ? '#A33022' : '#1E231D',
-                          backgroundColor: 'transparent'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#F5F5F0'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                        data-testid={`quantity-${component.id}`}
-                      >
-                        {component.quantity}
-                      </span>
-                    )}
+                    <input
+                      type="number"
+                      value={component.quantity}
+                      onChange={(e) => handleDirectChange(component.id, e.target.value)}
+                      className="w-28 px-3 py-2 text-sm border-2 rounded-lg focus:outline-none focus:ring-2 transition-all text-center font-medium"
+                      style={{ 
+                        backgroundColor: component.quantity === 0 ? '#ffe6e6' : component.quantity < 10 ? '#fff9e6' : '#FFFFFF',
+                        borderColor: component.quantity === 0 ? '#e74c3c' : component.quantity < 10 ? '#f39c12' : '#E2E2D9',
+                        color: component.quantity === 0 ? '#A33022' : '#1E231D'
+                      }}
+                      min="0"
+                      step="0.1"
+                      data-testid={`input-${component.id}`}
+                    />
                   </td>
                   <td className="px-4 py-3">
                     <span 
@@ -116,49 +97,6 @@ export default function InventoryTable({ components, onUpdateQuantity }) {
                     >
                       {status.label}
                     </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleDecrement(component)}
-                        className="p-1.5 rounded-lg border transition-all shadow-sm"
-                        style={{ 
-                          backgroundColor: '#FFFFFF',
-                          borderColor: '#E2E2D9',
-                          color: '#1E231D'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = '#F5F5F0';
-                          e.target.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = '#FFFFFF';
-                          e.target.style.transform = 'translateY(0)';
-                        }}
-                        data-testid={`decrement-${component.id}`}
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleIncrement(component)}
-                        className="p-1.5 rounded-lg transition-all shadow-sm"
-                        style={{ 
-                          backgroundColor: '#3A5C45',
-                          color: '#FFFFFF'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = '#2D4836';
-                          e.target.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = '#3A5C45';
-                          e.target.style.transform = 'translateY(0)';
-                        }}
-                        data-testid={`increment-${component.id}`}
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
                   </td>
                 </tr>
               );
