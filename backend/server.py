@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,7 +6,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from typing import List, Dict, Optional
 import uuid
 from datetime import datetime, timezone
 
@@ -27,44 +27,291 @@ api_router = APIRouter(prefix="/api")
 
 
 # Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
+class Component(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    name: str
+    unit: str
+    quantity: float
+    category: str = "General"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class ComponentUpdate(BaseModel):
+    quantity: float
 
-# Add your routes to the router instead of directly to app
+class MotorRequirement(BaseModel):
+    motor_type: str
+    component_id: str
+    component_name: str
+    required_quantity: float
+
+class WithdrawRequest(BaseModel):
+    motor_type: str
+    quantity: int
+
+class FeasibilityRequest(BaseModel):
+    hp_3: int = 0
+    hp_5: int = 0
+    hp_7_5: int = 0
+
+class FeasibilityResponse(BaseModel):
+    possible: bool
+    message: str
+    missing_components: Optional[List[Dict]] = None
+
+
+# Seed initial data
+async def seed_database():
+    # Check if data already exists
+    count = await db.components.count_documents({})
+    if count > 0:
+        return
+    
+    # All unique components from the 3 PDFs
+    components = [
+        {"id": "comp_1", "name": "Connector MC-4", "unit": "Set", "quantity": 200, "category": "Electrical"},
+        {"id": "comp_2", "name": "Bitumen Tape", "unit": "Nos", "quantity": 200, "category": "Accessories"},
+        {"id": "comp_3", "name": "Teflon Tape", "unit": "Nos", "quantity": 200, "category": "Accessories"},
+        {"id": "comp_4", "name": "PVC Electrical Insulation Tape", "unit": "Nos", "quantity": 200, "category": "Accessories"},
+        {"id": "comp_5", "name": "Cable Red (4 sq mm)", "unit": "Mtr", "quantity": 200, "category": "Electrical"},
+        {"id": "comp_6", "name": "Cable Black (4 sq mm)", "unit": "Mtr", "quantity": 200, "category": "Electrical"},
+        {"id": "comp_7", "name": "Flat Cable (3CX 2.5 sq mm)", "unit": "Mtr", "quantity": 200, "category": "Electrical"},
+        {"id": "comp_8", "name": "Earthing Cable (1.5m)", "unit": "Nos", "quantity": 200, "category": "Electrical"},
+        {"id": "comp_9", "name": "Lightning Arrestor Assembly", "unit": "Set", "quantity": 200, "category": "Safety"},
+        {"id": "comp_10", "name": "Arrestor Spike", "unit": "Set", "quantity": 200, "category": "Safety"},
+        {"id": "comp_11", "name": "Arrestor Rod 14mm", "unit": "Nos", "quantity": 200, "category": "Safety"},
+        {"id": "comp_12", "name": "Earthing Rod (14mm x 1m)", "unit": "Set", "quantity": 200, "category": "Safety"},
+        {"id": "comp_13", "name": "GI Pipe", "unit": "Nos", "quantity": 200, "category": "Plumbing"},
+        {"id": "comp_14", "name": "Earthing Patti", "unit": "Nos", "quantity": 200, "category": "Safety"},
+        {"id": "comp_15", "name": "Earthing Pit", "unit": "Nos", "quantity": 200, "category": "Safety"},
+        {"id": "comp_16", "name": "HDPE Pipe 63mm", "unit": "Mtr", "quantity": 200, "category": "Plumbing"},
+        {"id": "comp_17", "name": "HDPE Pipe 75mm", "unit": "Mtr", "quantity": 200, "category": "Plumbing"},
+        {"id": "comp_18", "name": "Cable Tie", "unit": "Pkt", "quantity": 200, "category": "Accessories"},
+        {"id": "comp_19", "name": "35mm Sleeve", "unit": "Mtr", "quantity": 200, "category": "Accessories"},
+        {"id": "comp_20", "name": "SS Nipple 2\"", "unit": "Nos", "quantity": 200, "category": "Plumbing"},
+        {"id": "comp_21", "name": "PP Rope 12mm", "unit": "Mtr", "quantity": 200, "category": "Accessories"},
+        {"id": "comp_22", "name": "6 sq mm Ring Lugs", "unit": "Nos", "quantity": 200, "category": "Electrical"},
+        {"id": "comp_23", "name": "Hose Clamp 2\"", "unit": "Nos", "quantity": 200, "category": "Plumbing"},
+        {"id": "comp_24", "name": "M6 x 50 GI Nut & Bolt", "unit": "Nos", "quantity": 200, "category": "Hardware"},
+        {"id": "comp_25", "name": "M8 x 75 SS Nut & Bolt", "unit": "Nos", "quantity": 200, "category": "Hardware"},
+        {"id": "comp_26", "name": "Chemical Bag (5kg)", "unit": "Bag", "quantity": 200, "category": "Accessories"},
+    ]
+    
+    for comp in components:
+        comp['created_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.components.insert_many(components)
+    
+    # Motor requirements based on PDFs
+    motor_requirements = [
+        # 3HP Requirements
+        {"motor_type": "3HP", "component_id": "comp_1", "component_name": "Connector MC-4", "required_quantity": 4},
+        {"motor_type": "3HP", "component_id": "comp_5", "component_name": "Cable Red (4 sq mm)", "required_quantity": 4},
+        {"motor_type": "3HP", "component_id": "comp_6", "component_name": "Cable Black (4 sq mm)", "required_quantity": 4},
+        {"motor_type": "3HP", "component_id": "comp_7", "component_name": "Flat Cable (3CX 2.5 sq mm)", "required_quantity": 30},
+        {"motor_type": "3HP", "component_id": "comp_9", "component_name": "Lightning Arrestor Assembly", "required_quantity": 1},
+        {"motor_type": "3HP", "component_id": "comp_12", "component_name": "Earthing Rod (14mm x 1m)", "required_quantity": 2},
+        {"motor_type": "3HP", "component_id": "comp_16", "component_name": "HDPE Pipe 63mm", "required_quantity": 30},
+        
+        # 5HP Requirements
+        {"motor_type": "5HP", "component_id": "comp_1", "component_name": "Connector MC-4", "required_quantity": 4},
+        {"motor_type": "5HP", "component_id": "comp_5", "component_name": "Cable Red (4 sq mm)", "required_quantity": 5},
+        {"motor_type": "5HP", "component_id": "comp_6", "component_name": "Cable Black (4 sq mm)", "required_quantity": 5},
+        {"motor_type": "5HP", "component_id": "comp_10", "component_name": "Arrestor Spike", "required_quantity": 1},
+        {"motor_type": "5HP", "component_id": "comp_12", "component_name": "Earthing Rod (14mm x 1m)", "required_quantity": 2},
+        {"motor_type": "5HP", "component_id": "comp_17", "component_name": "HDPE Pipe 75mm", "required_quantity": 30},
+        
+        # 7.5HP Requirements
+        {"motor_type": "7.5HP", "component_id": "comp_1", "component_name": "Connector MC-4", "required_quantity": 4},
+        {"motor_type": "7.5HP", "component_id": "comp_5", "component_name": "Cable Red (4 sq mm)", "required_quantity": 13},
+        {"motor_type": "7.5HP", "component_id": "comp_6", "component_name": "Cable Black (4 sq mm)", "required_quantity": 13},
+        {"motor_type": "7.5HP", "component_id": "comp_10", "component_name": "Arrestor Spike", "required_quantity": 1},
+        {"motor_type": "7.5HP", "component_id": "comp_12", "component_name": "Earthing Rod (14mm x 1m)", "required_quantity": 2},
+        {"motor_type": "7.5HP", "component_id": "comp_17", "component_name": "HDPE Pipe 75mm", "required_quantity": 50},
+    ]
+    
+    await db.motor_requirements.insert_many(motor_requirements)
+
+
+@app.on_event("startup")
+async def startup_event():
+    await seed_database()
+
+
+# API Routes
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Solar Pump Inventory Management System API"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
+@api_router.get("/components", response_model=List[Component])
+async def get_components():
+    components = await db.components.find({}, {"_id": 0}).to_list(1000)
+    for comp in components:
+        if isinstance(comp['created_at'], str):
+            comp['created_at'] = datetime.fromisoformat(comp['created_at'])
+    return components
+
+
+@api_router.put("/components/{component_id}")
+async def update_component(component_id: str, update: ComponentUpdate):
+    result = await db.components.update_one(
+        {"id": component_id},
+        {"$set": {"quantity": update.quantity}}
+    )
     
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Component not found")
     
-    return status_checks
+    component = await db.components.find_one({"id": component_id}, {"_id": 0})
+    if component and isinstance(component['created_at'], str):
+        component['created_at'] = datetime.fromisoformat(component['created_at'])
+    return component
+
+
+@api_router.get("/motor-requirements")
+async def get_motor_requirements():
+    requirements = await db.motor_requirements.find({}, {"_id": 0}).to_list(1000)
+    return requirements
+
+
+@api_router.get("/calculate-max-production")
+async def calculate_max_production():
+    components = await db.components.find({}, {"_id": 0}).to_list(1000)
+    requirements = await db.motor_requirements.find({}, {"_id": 0}).to_list(1000)
+    
+    # Create component lookup
+    component_map = {comp['id']: comp['quantity'] for comp in components}
+    
+    # Group requirements by motor type
+    motor_types = ['3HP', '5HP', '7.5HP']
+    max_production = {}
+    
+    for motor_type in motor_types:
+        motor_reqs = [r for r in requirements if r['motor_type'] == motor_type]
+        
+        if not motor_reqs:
+            max_production[motor_type] = 0
+            continue
+        
+        # Calculate max motors based on minimum ratio
+        max_motors = float('inf')
+        for req in motor_reqs:
+            available = component_map.get(req['component_id'], 0)
+            required = req['required_quantity']
+            
+            if required > 0:
+                possible = int(available // required)
+                max_motors = min(max_motors, possible)
+        
+        max_production[motor_type] = max_motors if max_motors != float('inf') else 0
+    
+    return max_production
+
+
+@api_router.post("/withdraw")
+async def withdraw_components(request: WithdrawRequest):
+    if request.quantity <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be positive")
+    
+    # Get requirements for this motor type
+    requirements = await db.motor_requirements.find(
+        {"motor_type": request.motor_type},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    if not requirements:
+        raise HTTPException(status_code=404, detail="Motor type not found")
+    
+    # Check if withdrawal is possible
+    components = await db.components.find({}, {"_id": 0}).to_list(1000)
+    component_map = {comp['id']: comp for comp in components}
+    
+    insufficient = []
+    for req in requirements:
+        comp = component_map.get(req['component_id'])
+        if comp:
+            needed = req['required_quantity'] * request.quantity
+            if comp['quantity'] < needed:
+                insufficient.append({
+                    "component": req['component_name'],
+                    "needed": needed,
+                    "available": comp['quantity'],
+                    "shortage": needed - comp['quantity']
+                })
+    
+    if insufficient:
+        return {
+            "success": False,
+            "message": "Insufficient components",
+            "insufficient_components": insufficient
+        }
+    
+    # Perform withdrawal
+    for req in requirements:
+        needed = req['required_quantity'] * request.quantity
+        await db.components.update_one(
+            {"id": req['component_id']},
+            {"$inc": {"quantity": -needed}}
+        )
+    
+    return {
+        "success": True,
+        "message": f"Successfully withdrawn components for {request.quantity} x {request.motor_type} motors"
+    }
+
+
+@api_router.post("/check-feasibility", response_model=FeasibilityResponse)
+async def check_feasibility(request: FeasibilityRequest):
+    if request.hp_3 < 0 or request.hp_5 < 0 or request.hp_7_5 < 0:
+        raise HTTPException(status_code=400, detail="Quantities cannot be negative")
+    
+    # Get all requirements
+    requirements = await db.motor_requirements.find({}, {"_id": 0}).to_list(1000)
+    components = await db.components.find({}, {"_id": 0}).to_list(1000)
+    
+    # Calculate total needed for each component
+    component_map = {comp['id']: comp['quantity'] for comp in components}
+    total_needed = {}
+    
+    for req in requirements:
+        comp_id = req['component_id']
+        if comp_id not in total_needed:
+            total_needed[comp_id] = {"name": req['component_name'], "quantity": 0}
+        
+        if req['motor_type'] == '3HP':
+            total_needed[comp_id]['quantity'] += req['required_quantity'] * request.hp_3
+        elif req['motor_type'] == '5HP':
+            total_needed[comp_id]['quantity'] += req['required_quantity'] * request.hp_5
+        elif req['motor_type'] == '7.5HP':
+            total_needed[comp_id]['quantity'] += req['required_quantity'] * request.hp_7_5
+    
+    # Check availability
+    missing = []
+    for comp_id, needed_info in total_needed.items():
+        available = component_map.get(comp_id, 0)
+        if available < needed_info['quantity']:
+            missing.append({
+                "component": needed_info['name'],
+                "needed": needed_info['quantity'],
+                "available": available,
+                "shortage": needed_info['quantity'] - available
+            })
+    
+    if missing:
+        return FeasibilityResponse(
+            possible=False,
+            message="Not Possible - Insufficient components",
+            missing_components=missing
+        )
+    
+    return FeasibilityResponse(
+        possible=True,
+        message="Possible - All components available",
+        missing_components=None
+    )
+
 
 # Include the router in the main app
 app.include_router(api_router)
