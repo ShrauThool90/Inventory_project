@@ -164,49 +164,71 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white border rounded-xl shadow-sm p-6" style={{ borderColor: '#E2E2D9' }} data-testid="stat-total-components">
+        {/* Stats Cards - ENHANCED */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-all" style={{ borderLeft: '8px solid #3498db' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Total Components</p>
-                <p className="text-2xl font-semibold mt-2" style={{ color: '#1E231D' }}>{totalComponents}</p>
-                <small style={{ color: '#7f8c8d' }}>Different component types</small>
+                <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: '#3498db' }}>📦 TOTAL COMPONENTS</p>
+                <p className="text-5xl font-extrabold" style={{ color: '#3498db' }}>{totalComponents}</p>
+                <small className="text-gray-500 mt-2 block">Different types</small>
               </div>
-              <Package className="w-8 h-8" style={{ color: '#3A5C45', opacity: 0.6 }} />
+              <Package className="w-16 h-16" style={{ color: '#3498db', opacity: 0.3 }} />
             </div>
           </div>
 
-          <div className="bg-white border rounded-xl shadow-sm p-6" style={{ borderColor: '#E2E2D9' }} data-testid="stat-total-stock">
+          <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-all" style={{ borderLeft: '8px solid #27ae60' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Total Stock</p>
-                <p className="text-2xl font-semibold mt-2" style={{ color: '#1E231D' }}>{totalValue.toFixed(0)}</p>
-                <small style={{ color: '#7f8c8d' }}>Total units available</small>
+                <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: '#27ae60' }}>📊 TOTAL STOCK</p>
+                <p className="text-5xl font-extrabold" style={{ color: '#27ae60' }}>{totalValue.toFixed(0)}</p>
+                <small className="text-gray-500 mt-2 block">Total units</small>
               </div>
-              <TrendingUp className="w-8 h-8" style={{ color: '#2B593F', opacity: 0.6 }} />
+              <TrendingUp className="w-16 h-16" style={{ color: '#27ae60', opacity: 0.3 }} />
             </div>
           </div>
 
-          <div className="bg-white border rounded-xl shadow-sm p-6" style={{ borderColor: '#E2E2D9' }} data-testid="stat-low-stock">
+          <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-all" style={{ borderLeft: '8px solid #f39c12' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Low Stock Items</p>
-                <p className="text-2xl font-semibold mt-2" style={{ color: lowStockCount > 0 ? '#f39c12' : '#1E231D' }}>{lowStockCount}</p>
-                <small style={{ color: '#7f8c8d' }}>Below 10 units</small>
+                <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: '#f39c12' }}>⚠️ LOW STOCK</p>
+                <p className="text-5xl font-extrabold" style={{ color: '#f39c12' }}>{lowStockCount}</p>
+                <small className="text-gray-500 mt-2 block">Components</small>
               </div>
-              <AlertCircle className="w-8 h-8" style={{ color: '#B36B00', opacity: 0.6 }} />
+              <AlertCircle className="w-16 h-16" style={{ color: '#f39c12', opacity: 0.3 }} />
             </div>
           </div>
 
-          <div className="bg-white border rounded-xl shadow-sm p-6" style={{ borderColor: '#E2E2D9' }} data-testid="stat-critical">
+          <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-all" style={{ borderLeft: '8px solid #e74c3c' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#596157' }}>Critical Items</p>
-                <p className="text-2xl font-semibold mt-2" style={{ color: criticalCount > 0 ? '#e74c3c' : '#1E231D' }}>{criticalCount}</p>
-                <small style={{ color: '#7f8c8d' }}>Out of stock</small>
+                <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: '#e74c3c' }}>🚨 CRITICAL</p>
+                <p className="text-5xl font-extrabold" style={{ color: '#e74c3c' }}>{criticalCount}</p>
+                <small className="text-gray-500 mt-2 block">Out of stock</small>
               </div>
-              <AlertCircle className="w-8 h-8" style={{ color: '#e74c3c', opacity: 0.6 }} />
+              <AlertCircle className="w-16 h-16" style={{ color: '#e74c3c', opacity: 0.3 }} />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-all" style={{ borderLeft: '8px solid #9b59b6' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: '#9b59b6' }}>🎯 MAX PRODUCTION</p>
+                <p className="text-5xl font-extrabold" style={{ color: '#9b59b6' }}>{maxProduction['3HP'] || 0}</p>
+                <small className="text-gray-500 mt-2 block">3HP motors</small>
+              </div>
+              <CheckCircle2 className="w-16 h-16" style={{ color: '#9b59b6', opacity: 0.3 }} />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-all" style={{ borderLeft: '8px solid #16a085' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: '#16a085' }}>✅ HEALTHY</p>
+                <p className="text-5xl font-extrabold" style={{ color: '#16a085' }}>{totalComponents - lowStockCount - criticalCount}</p>
+                <small className="text-gray-500 mt-2 block">Components OK</small>
+              </div>
+              <CheckCircle2 className="w-16 h-16" style={{ color: '#16a085', opacity: 0.3 }} />
             </div>
           </div>
         </div>
