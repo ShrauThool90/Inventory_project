@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 
-export default function InventoryTable({ components, onUpdateQuantity }) {
+export default function InventoryTable({ components, requirements = [], onUpdateQuantity }) {
   const [editingValues, setEditingValues] = useState({});
 
   const handleInputChange = (componentId, value) => {
@@ -36,10 +36,22 @@ export default function InventoryTable({ components, onUpdateQuantity }) {
     }
   };
 
-  const getStockStatus = (quantity) => {
-    if (quantity === 0) return { label: 'Critical', color: '#A33022', bgColor: '#FAECEB' };
-    if (quantity < 10) return { label: 'Low Stock', color: '#B36B00', bgColor: '#FDF3E1' };
-    return { label: 'In Stock', color: '#2B593F', bgColor: '#E8F0EA' };
+  const getStockStatus = (component, requirements) => {
+    // Find max requirement for this component across all motor types
+    const maxReq = requirements
+      .filter(r => r.component_id === component.id)
+      .reduce((max, r) => Math.max(max, r.required_quantity), 0);
+    
+    // Low stock threshold = can produce less than 5 motors
+    const lowStockThreshold = maxReq > 0 ? maxReq * 5 : 10;
+    
+    if (component.quantity === 0) {
+      return { label: 'Critical', color: '#A33022', bgColor: '#FAECEB', threshold: lowStockThreshold };
+    }
+    if (component.quantity < lowStockThreshold) {
+      return { label: 'Low Stock', color: '#B36B00', bgColor: '#FDF3E1', threshold: lowStockThreshold };
+    }
+    return { label: 'In Stock', color: '#2B593F', bgColor: '#E8F0EA', threshold: lowStockThreshold };
   };
 
   return (
@@ -64,15 +76,15 @@ export default function InventoryTable({ components, onUpdateQuantity }) {
           </thead>
           <tbody>
             {components.map((component) => {
-              const status = getStockStatus(component.quantity);
-              const rowBgColor = component.quantity === 0 ? '#ffe6e6' : component.quantity < 10 ? '#fff9e6' : 'transparent';
+              const status = getStockStatus(component, requirements);
+              const rowBgColor = component.quantity === 0 ? '#ffe6e6' : component.quantity < status.threshold ? '#fff9e6' : 'transparent';
               
               return (
                 <tr 
                   key={component.id} 
                   className="border-b transition-colors duration-150"
                   style={{ borderColor: '#E2E2D9', backgroundColor: rowBgColor }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = component.quantity === 0 ? '#ffcccc' : component.quantity < 10 ? '#fff3cc' : '#F9F9F7'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = component.quantity === 0 ? '#ffcccc' : component.quantity < status.threshold ? '#fff3cc' : '#F9F9F7'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = rowBgColor}
                   data-testid={`row-${component.id}`}
                 >
@@ -93,8 +105,8 @@ export default function InventoryTable({ components, onUpdateQuantity }) {
                       onKeyPress={(e) => handleKeyPress(e, component.id, component.quantity)}
                       className="w-28 px-3 py-2 text-sm border-2 rounded-lg focus:outline-none focus:ring-2 transition-all text-center font-medium"
                       style={{ 
-                        backgroundColor: component.quantity === 0 ? '#ffe6e6' : component.quantity < 10 ? '#fff9e6' : '#FFFFFF',
-                        borderColor: component.quantity === 0 ? '#e74c3c' : component.quantity < 10 ? '#f39c12' : '#E2E2D9',
+                        backgroundColor: component.quantity === 0 ? '#ffe6e6' : component.quantity < status.threshold ? '#fff9e6' : '#FFFFFF',
+                        borderColor: component.quantity === 0 ? '#e74c3c' : component.quantity < status.threshold ? '#f39c12' : '#E2E2D9',
                         color: component.quantity === 0 ? '#A33022' : '#1E231D'
                       }}
                       min="0"
@@ -107,6 +119,7 @@ export default function InventoryTable({ components, onUpdateQuantity }) {
                       className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
                       style={{ backgroundColor: status.bgColor, color: status.color }}
                       data-testid={`status-${component.id}`}
+                      title={`Threshold: ${status.threshold} (5 motors worth)`}
                     >
                       {status.label}
                     </span>

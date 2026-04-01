@@ -10,6 +10,7 @@ const API = `${BACKEND_URL}/api`;
 
 export default function Dashboard() {
   const [components, setComponents] = useState([]);
+  const [requirements, setRequirements] = useState([]);
   const [maxProduction, setMaxProduction] = useState({ '3HP': 0, '5HP': 0, '7.5HP': 0 });
   const [criticalComponents, setCriticalComponents] = useState({ '3HP': null, '5HP': null, '7.5HP': null });
   const [loading, setLoading] = useState(true);
@@ -21,11 +22,13 @@ export default function Dashboard() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [componentsRes, maxProdRes] = await Promise.all([
+      const [componentsRes, requirementsRes, maxProdRes] = await Promise.all([
         axios.get(`${API}/components`),
+        axios.get(`${API}/motor-requirements`),
         axios.get(`${API}/calculate-max-production`)
       ]);
       setComponents(componentsRes.data);
+      setRequirements(requirementsRes.data);
       setMaxProduction(maxProdRes.data.production);
       setCriticalComponents(maxProdRes.data.critical_components);
     } catch (error) {
@@ -49,9 +52,19 @@ export default function Dashboard() {
     }
   };
 
-  // Calculate stats
+  // Calculate stats with intelligent thresholds
+  const getLowStockThreshold = (componentId) => {
+    const maxReq = requirements
+      .filter(r => r.component_id === componentId)
+      .reduce((max, r) => Math.max(max, r.required_quantity), 0);
+    return maxReq > 0 ? maxReq * 5 : 10;
+  };
+
   const totalComponents = components.length;
-  const lowStockCount = components.filter(c => c.quantity < 10).length;
+  const lowStockCount = components.filter(c => {
+    const threshold = getLowStockThreshold(c.id);
+    return c.quantity < threshold && c.quantity > 0;
+  }).length;
   const criticalCount = components.filter(c => c.quantity === 0).length;
   const totalValue = components.reduce((sum, c) => sum + c.quantity, 0);
 
@@ -237,7 +250,8 @@ export default function Dashboard() {
 
         {/* Inventory Table */}
         <InventoryTable 
-          components={components} 
+          components={components}
+          requirements={requirements}
           onUpdateQuantity={updateComponentQuantity}
         />
       </main>

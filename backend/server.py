@@ -63,13 +63,32 @@ class FeasibilityResponse(BaseModel):
 
 # Seed initial data
 async def seed_database():
-    # Check if data already exists
+    # Always reseed motor requirements (they may have been updated)
+    await db.motor_requirements.delete_many({})
+    
+    # Only seed components if they don't exist
     count = await db.components.count_documents({})
     if count > 0:
+        # Components exist, only insert motor requirements
+        motor_reqs = get_motor_requirements_data()
+        if motor_reqs:
+            await db.motor_requirements.insert_many(motor_reqs)
         return
     
-    # All unique components from the 3 PDFs
-    components = [
+    # Seed both components and requirements
+    components = get_initial_components()
+    for comp in components:
+        comp['created_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.components.insert_many(components)
+    
+    motor_reqs = get_motor_requirements()
+    if motor_reqs:
+        await db.motor_requirements.insert_many(motor_reqs)
+
+
+def get_initial_components():
+    return [
         {"id": "comp_1", "name": "Connector MC-4", "unit": "Set", "quantity": 200, "category": "Electrical"},
         {"id": "comp_2", "name": "Bitumen Tape", "unit": "Nos", "quantity": 200, "category": "Accessories"},
         {"id": "comp_3", "name": "Teflon Tape", "unit": "Nos", "quantity": 200, "category": "Accessories"},
@@ -97,45 +116,91 @@ async def seed_database():
         {"id": "comp_25", "name": "M8 x 75 SS Nut & Bolt", "unit": "Nos", "quantity": 200, "category": "Hardware"},
         {"id": "comp_26", "name": "Chemical Bag (5kg)", "unit": "Bag", "quantity": 200, "category": "Accessories"},
     ]
-    
-    for comp in components:
-        comp['created_at'] = datetime.now(timezone.utc).isoformat()
-    
-    await db.components.insert_many(components)
-    
+
+
+def get_motor_requirements_data():
     # Motor requirements based on PDFs
     motor_requirements = [
-        # 3HP Requirements
+        # 3HP Requirements (from 3HP-30M BOS Packing List.pdf)
         {"motor_type": "3HP", "component_id": "comp_1", "component_name": "Connector MC-4", "required_quantity": 4},
+        {"motor_type": "3HP", "component_id": "comp_2", "component_name": "Bitumen Tape", "required_quantity": 1},
+        {"motor_type": "3HP", "component_id": "comp_3", "component_name": "Teflon Tape", "required_quantity": 1},
+        {"motor_type": "3HP", "component_id": "comp_4", "component_name": "PVC Electrical Insulation Tape", "required_quantity": 1},
         {"motor_type": "3HP", "component_id": "comp_5", "component_name": "Cable Red (4 sq mm)", "required_quantity": 4},
         {"motor_type": "3HP", "component_id": "comp_6", "component_name": "Cable Black (4 sq mm)", "required_quantity": 4},
         {"motor_type": "3HP", "component_id": "comp_7", "component_name": "Flat Cable (3CX 2.5 sq mm)", "required_quantity": 30},
+        {"motor_type": "3HP", "component_id": "comp_8", "component_name": "Earthing Cable (1.5m)", "required_quantity": 1},
         {"motor_type": "3HP", "component_id": "comp_9", "component_name": "Lightning Arrestor Assembly", "required_quantity": 1},
         {"motor_type": "3HP", "component_id": "comp_12", "component_name": "Earthing Rod (14mm x 1m)", "required_quantity": 2},
+        {"motor_type": "3HP", "component_id": "comp_15", "component_name": "Earthing Pit", "required_quantity": 2},
         {"motor_type": "3HP", "component_id": "comp_16", "component_name": "HDPE Pipe 63mm", "required_quantity": 30},
+        {"motor_type": "3HP", "component_id": "comp_18", "component_name": "Cable Tie", "required_quantity": 1},
+        {"motor_type": "3HP", "component_id": "comp_19", "component_name": "35mm Sleeve", "required_quantity": 8},
+        {"motor_type": "3HP", "component_id": "comp_20", "component_name": "SS Nipple 2\"", "required_quantity": 1},
+        {"motor_type": "3HP", "component_id": "comp_21", "component_name": "PP Rope 12mm", "required_quantity": 35},
+        {"motor_type": "3HP", "component_id": "comp_22", "component_name": "6 sq mm Ring Lugs", "required_quantity": 4},
+        {"motor_type": "3HP", "component_id": "comp_23", "component_name": "Hose Clamp 2\"", "required_quantity": 1},
+        {"motor_type": "3HP", "component_id": "comp_24", "component_name": "M6 x 50 GI Nut & Bolt", "required_quantity": 3},
+        {"motor_type": "3HP", "component_id": "comp_25", "component_name": "M8 x 75 SS Nut & Bolt", "required_quantity": 1},
+        {"motor_type": "3HP", "component_id": "comp_26", "component_name": "Chemical Bag (5kg)", "required_quantity": 2},
         
-        # 5HP Requirements
+        # 5HP Requirements (from 5HP-30M BOS Packing List.pdf)
         {"motor_type": "5HP", "component_id": "comp_1", "component_name": "Connector MC-4", "required_quantity": 4},
+        {"motor_type": "5HP", "component_id": "comp_2", "component_name": "Bitumen Tape", "required_quantity": 1},
+        {"motor_type": "5HP", "component_id": "comp_3", "component_name": "Teflon Tape", "required_quantity": 1},
+        {"motor_type": "5HP", "component_id": "comp_4", "component_name": "PVC Electrical Insulation Tape", "required_quantity": 1},
         {"motor_type": "5HP", "component_id": "comp_5", "component_name": "Cable Red (4 sq mm)", "required_quantity": 5},
         {"motor_type": "5HP", "component_id": "comp_6", "component_name": "Cable Black (4 sq mm)", "required_quantity": 5},
+        {"motor_type": "5HP", "component_id": "comp_8", "component_name": "Earthing Cable (1.5m)", "required_quantity": 1},
         {"motor_type": "5HP", "component_id": "comp_10", "component_name": "Arrestor Spike", "required_quantity": 1},
+        {"motor_type": "5HP", "component_id": "comp_11", "component_name": "Arrestor Rod 14mm", "required_quantity": 1},
         {"motor_type": "5HP", "component_id": "comp_12", "component_name": "Earthing Rod (14mm x 1m)", "required_quantity": 2},
+        {"motor_type": "5HP", "component_id": "comp_13", "component_name": "GI Pipe", "required_quantity": 1},
+        {"motor_type": "5HP", "component_id": "comp_14", "component_name": "Earthing Patti", "required_quantity": 1},
+        {"motor_type": "5HP", "component_id": "comp_15", "component_name": "Earthing Pit", "required_quantity": 2},
         {"motor_type": "5HP", "component_id": "comp_17", "component_name": "HDPE Pipe 75mm", "required_quantity": 30},
+        {"motor_type": "5HP", "component_id": "comp_18", "component_name": "Cable Tie", "required_quantity": 1},
+        {"motor_type": "5HP", "component_id": "comp_19", "component_name": "35mm Sleeve", "required_quantity": 10},
+        {"motor_type": "5HP", "component_id": "comp_20", "component_name": "SS Nipple 2\"", "required_quantity": 1},
+        {"motor_type": "5HP", "component_id": "comp_21", "component_name": "PP Rope 12mm", "required_quantity": 35},
+        {"motor_type": "5HP", "component_id": "comp_22", "component_name": "6 sq mm Ring Lugs", "required_quantity": 2},
+        {"motor_type": "5HP", "component_id": "comp_23", "component_name": "Hose Clamp 2\"", "required_quantity": 1},
+        {"motor_type": "5HP", "component_id": "comp_24", "component_name": "M6 x 50 GI Nut & Bolt", "required_quantity": 2},
+        {"motor_type": "5HP", "component_id": "comp_25", "component_name": "M8 x 75 SS Nut & Bolt", "required_quantity": 1},
+        {"motor_type": "5HP", "component_id": "comp_26", "component_name": "Chemical Bag (5kg)", "required_quantity": 1},
         
-        # 7.5HP Requirements
+        # 7.5HP Requirements (from 7.5HP-50M BOS Packing List.pdf)
         {"motor_type": "7.5HP", "component_id": "comp_1", "component_name": "Connector MC-4", "required_quantity": 4},
+        {"motor_type": "7.5HP", "component_id": "comp_2", "component_name": "Bitumen Tape", "required_quantity": 1},
+        {"motor_type": "7.5HP", "component_id": "comp_3", "component_name": "Teflon Tape", "required_quantity": 1},
+        {"motor_type": "7.5HP", "component_id": "comp_4", "component_name": "PVC Electrical Insulation Tape", "required_quantity": 1},
         {"motor_type": "7.5HP", "component_id": "comp_5", "component_name": "Cable Red (4 sq mm)", "required_quantity": 13},
         {"motor_type": "7.5HP", "component_id": "comp_6", "component_name": "Cable Black (4 sq mm)", "required_quantity": 13},
+        {"motor_type": "7.5HP", "component_id": "comp_8", "component_name": "Earthing Cable (1.5m)", "required_quantity": 1},
         {"motor_type": "7.5HP", "component_id": "comp_10", "component_name": "Arrestor Spike", "required_quantity": 1},
+        {"motor_type": "7.5HP", "component_id": "comp_11", "component_name": "Arrestor Rod 14mm", "required_quantity": 1},
         {"motor_type": "7.5HP", "component_id": "comp_12", "component_name": "Earthing Rod (14mm x 1m)", "required_quantity": 2},
+        {"motor_type": "7.5HP", "component_id": "comp_13", "component_name": "GI Pipe", "required_quantity": 1},
+        {"motor_type": "7.5HP", "component_id": "comp_14", "component_name": "Earthing Patti", "required_quantity": 1},
+        {"motor_type": "7.5HP", "component_id": "comp_15", "component_name": "Earthing Pit", "required_quantity": 2},
         {"motor_type": "7.5HP", "component_id": "comp_17", "component_name": "HDPE Pipe 75mm", "required_quantity": 50},
+        {"motor_type": "7.5HP", "component_id": "comp_18", "component_name": "Cable Tie", "required_quantity": 1},
+        {"motor_type": "7.5HP", "component_id": "comp_19", "component_name": "35mm Sleeve", "required_quantity": 26},
+        {"motor_type": "7.5HP", "component_id": "comp_20", "component_name": "SS Nipple 2\"", "required_quantity": 1},
+        {"motor_type": "7.5HP", "component_id": "comp_21", "component_name": "PP Rope 12mm", "required_quantity": 55},
+        {"motor_type": "7.5HP", "component_id": "comp_22", "component_name": "6 sq mm Ring Lugs", "required_quantity": 2},
+        {"motor_type": "7.5HP", "component_id": "comp_23", "component_name": "Hose Clamp 2\"", "required_quantity": 1},
+        {"motor_type": "7.5HP", "component_id": "comp_24", "component_name": "M6 x 50 GI Nut & Bolt", "required_quantity": 2},
+        {"motor_type": "7.5HP", "component_id": "comp_25", "component_name": "M8 x 75 SS Nut & Bolt", "required_quantity": 1},
+        {"motor_type": "7.5HP", "component_id": "comp_26", "component_name": "Chemical Bag (5kg)", "required_quantity": 1},
     ]
-    
-    await db.motor_requirements.insert_many(motor_requirements)
+    return motor_requirements
 
 
 @app.on_event("startup")
 async def startup_event():
+    # Clear and reseed motor requirements on every startup
+    await db.motor_requirements.delete_many({})
     await seed_database()
 
 
