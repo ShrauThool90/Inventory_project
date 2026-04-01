@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7.5HP Motor System - Solar Pump Inventory</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div>
+                <h1>⚡ 7.5HP Motor System</h1>
+                <p class="subtitle">Component Requirements & Production Management</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <nav>
+            <ul>
+                <li><a href="index.html">📊 Dashboard</a></li>
+                <li><a href="3hp.html">🔧 3HP System</a></li>
+                <li><a href="5hp.html">🔧 5HP System</a></li>
+                <li><a href="7_5hp.html" class="active">🔧 7.5HP System</a></li>
+            </ul>
+        </nav>
+
+        <!-- Production Capacity Card -->
+        <div class="production-section">
+            <div class="production-header">
+                <h2><span class="motor-badge motor-75hp">7.5HP</span> Production Capacity</h2>
+            </div>
+            
+            <div class="production-value" id="maxProduction" style="color: #e74c3c;">0</div>
+            <p style="text-align: center; color: #7f8c8d; font-size: 1.1em;">Maximum motors that can be produced</p>
+            
+            <div id="criticalComponent"></div>
+
+            <!-- Withdraw Form -->
+            <div class="withdraw-form">
+                <div class="form-group">
+                    <label for="withdrawQty">Enter Quantity to Produce:</label>
+                    <input type="number" id="withdrawQty" min="1" value="1" step="1">
+                </div>
+                <button class="btn btn-success" onclick="performWithdraw()">🚀 Withdraw Components</button>
+            </div>
+        </div>
+
+        <!-- Requirements Table -->
+        <div class="table-container requirements-table">
+            <h2 style="margin-bottom: 20px;">📝 Component Requirements (Per Motor)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Component Name</th>
+                        <th>Required Qty</th>
+                        <th>Available</th>
+                        <th>Can Produce</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="requirementsBody">
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Full Inventory Table -->
+        <div class="table-container">
+            <h2 style="margin-bottom: 20px;">📋 Complete Inventory</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Item Name</th>
+                        <th>Category</th>
+                        <th>Unit</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryBody">
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="location.reload()">🔄 Refresh Data</button>
+            <button class="btn btn-primary" onclick="location.href='index.html'">🏠 Back to Dashboard</button>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+    <script>
+        const MOTOR_TYPE = '7.5HP';
+
+function loadMotorPage() {
+    inventory = getInventory();
+    const production = calculateMaxProduction(MOTOR_TYPE);
+    
+    // Update max production
+    document.getElementById('maxProduction').textContent = production.max;
+    
+    // Show critical component
+    const criticalDiv = document.getElementById('criticalComponent');
+    if (production.max === 0) {
+        criticalDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <span class="alert-icon">🚨</span>
+                <div>
+                    <strong>Production Halted!</strong><br>
+                    Cannot produce any motors. Some components are out of stock.
+                </div>
+            </div>
+        `;
+    } else if (production.critical) {
+        criticalDiv.innerHTML = `
+            <div class="critical-info">
+                <strong>🎯 Critical Component:</strong> ${production.critical}<br>
+                This component is limiting your production capacity. Restock it to increase production.
+            </div>
+        `;
+    } else {
+        criticalDiv.innerHTML = '';
+    }
+
+    // Populate requirements table
+    const reqBody = document.getElementById('requirementsBody');
+    reqBody.innerHTML = '';
+    
+    const requirements = MOTOR_REQUIREMENTS[MOTOR_TYPE];
+    requirements.forEach(req => {
+        const component = inventory.find(c => c.id === req.componentId);
+        if (component) {
+            const canProduce = Math.floor(component.quantity / req.required);
+            const isCritical = canProduce === production.max;
+            const statusClass = component.quantity === 0 ? 'critical' : 
+                               canProduce === production.max ? 'low' : 'normal';
+            
+            const row = document.createElement('tr');
+            row.className = `row-${statusClass}`;
+            row.innerHTML = `
+                <td><strong>${req.componentName}</strong> ${isCritical ? '🎯' : ''}</td>
+                <td><strong>${req.required}</strong> ${component.unit}</td>
+                <td>${component.quantity.toFixed(1)} ${component.unit}</td>
+                <td><strong style="color: ${canProduce === 0 ? '#e74c3c' : '#27ae60'};">${canProduce}</strong> motors</td>
+                <td><span class="status-badge status-${statusClass}">${getStockStatusText(component.quantity)}</span></td>
+            `;
+            reqBody.appendChild(row);
+        }
+    });
+
+    // Populate full inventory
+    const invBody = document.getElementById('inventoryBody');
+    invBody.innerHTML = '';
+    
+    inventory.forEach((component, index) => {
+        const statusClass = getStockStatusClass(component.quantity);
+        const statusText = getStockStatusText(component.quantity);
+        
+        const row = document.createElement('tr');
+        row.className = `row-${statusClass}`;
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td><strong>${component.name}</strong></td>
+            <td>${component.category}</td>
+            <td>${component.unit}</td>
+            <td>
+                <input type="number" 
+                       value="${component.quantity}" 
+                       class="input-${statusClass}"
+                       onchange="updateInventoryQuantity('${component.id}', this.value)"
+                       min="0"
+                       step="0.1">
+            </td>
+            <td><span class="status-badge status-${statusClass}">${statusText}</span></td>
+        `;
+        invBody.appendChild(row);
+    });
+}
+
+function updateInventoryQuantity(componentId, newValue) {
+    if (updateQuantity(componentId, newValue)) {
+        loadMotorPage();
+        showToast('Quantity updated successfully', 'success');
+    }
+}
+
+function performWithdraw() {
+    const quantity = parseInt(document.getElementById('withdrawQty').value);
+    
+    if (!quantity || quantity <= 0) {
+        showToast('Please enter a valid quantity', 'error');
+        return;
+    }
+
+    const production = calculateMaxProduction(MOTOR_TYPE);
+    if (quantity > production.max) {
+        showToast(`Cannot produce ${quantity} motors. Maximum capacity: ${production.max}`, 'error');
+        return;
+    }
+
+    const result = withdrawComponents(MOTOR_TYPE, quantity);
+    
+    if (result.success) {
+        showToast(result.message, 'success');
+        document.getElementById('withdrawQty').value = 1;
+        loadMotorPage();
+    } else {
+        let msg = result.message;
+        if (result.details && result.details.length > 0) {
+            msg += '\n' + result.details.map(d => 
+                `${d.name}: need ${d.shortage.toFixed(1)} more`
+            ).join(', ');
+        }
+        showToast(msg, 'error');
+    }
+}
+
+// Load on page load
+document.addEventListener('DOMContentLoaded', loadMotorPage);
+    </script>
+</body>
+</html>
