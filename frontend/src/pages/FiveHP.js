@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { Zap, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Zap, AlertCircle, ArrowLeft, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import InventoryTable from '../components/InventoryTable';
+import { downloadReport } from '../utils/reportGenerator';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -189,13 +190,43 @@ export default function FiveHP() {
               <small className="text-gray-500 mt-2 block">Below threshold</small>
             </div>
           </div>
+
+          {/* Efficiency Card */}
+          <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-all md:col-span-2 lg:col-span-3" style={{ borderLeft: '8px solid #1abc9c' }} data-testid="efficiency-card">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: '#1abc9c' }}>EFFICIENCY</p>
+              {(() => {
+                const totalAvailable = components.reduce((sum, c) => sum + c.quantity, 0);
+                const totalUsed = withdrawQty > 0 ? requirements.reduce((sum, req) => sum + (req.required_quantity * withdrawQty), 0) : 0;
+                const efficiency = totalAvailable > 0 ? ((totalUsed / totalAvailable) * 100).toFixed(1) : '0.0';
+                const effNum = parseFloat(efficiency);
+                const barColor = effNum < 30 ? '#27ae60' : effNum < 60 ? '#f39c12' : effNum < 80 ? '#e67e22' : '#e74c3c';
+                return (
+                  <>
+                    <div className="flex items-end gap-4 mb-3">
+                      <p className="text-5xl font-extrabold" style={{ color: '#1abc9c' }}>{efficiency}%</p>
+                      <span className="text-sm font-medium pb-2" style={{ color: '#7f8c8d' }}>
+                        Resource Utilization ({totalUsed.toFixed(0)} / {totalAvailable.toFixed(0)} units)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-4">
+                      <div className="h-4 rounded-full transition-all duration-500" style={{ width: `${Math.min(effNum, 100)}%`, backgroundColor: barColor }} />
+                    </div>
+                    <small className="text-gray-500 mt-2 block">
+                      {effNum < 30 ? 'LOW - Minimal resource utilization' : effNum < 60 ? 'MODERATE - Balanced utilization' : effNum < 80 ? 'HIGH - Monitor stock levels' : 'CRITICAL - Immediate restocking required'}
+                    </small>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
         </div>
 
         {/* Production Card */}
         <div className="bg-white border rounded-xl shadow-sm p-6 mb-8" style={{ borderColor: '#E2E2D9' }}>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              <span className="inline-block px-6 py-2 rounded-full font-bold" style={{ background: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)', color: 'white' }}>3HP</span>
+              <span className="inline-block px-6 py-2 rounded-full font-bold" style={{ background: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)', color: 'white' }}>5HP</span>
               <span className="ml-3">Production Capacity</span>
             </h2>
           </div>
@@ -251,16 +282,31 @@ export default function FiveHP() {
           </div>
         </div>
 
-        {/* Requirements Table */}
+        {/* Requirements Table with Use Columns */}
         <div className="bg-white border rounded-xl shadow-sm p-6 mb-8" style={{ borderColor: '#E2E2D9' }}>
-          <h2 className="text-xl font-semibold mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>📝 Component Requirements (Per Motor)</h2>
-          <div className="overflow-x-auto">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold" style={{ fontFamily: 'Outfit, sans-serif' }}>Component Requirements & Usage Analysis</h2>
+            <button
+              onClick={() => downloadReport(MOTOR_TYPE, components, requirements, maxProduction, criticalComponent, withdrawQty)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm transition-all"
+              style={{ background: 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)', color: 'white' }}
+              data-testid="download-report-btn"
+            >
+              <Download className="w-4 h-4" /> Download Report
+            </button>
+          </div>
+          <p className="text-sm mb-4" style={{ color: '#596157' }}>
+            Showing usage for <strong>{withdrawQty}</strong> motor(s) — adjust the production quantity above to see updated calculations.
+          </p>
+          <div className="overflow-x-auto" data-testid="requirements-table">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-y" style={{ backgroundColor: '#34495e', borderColor: '#2c3e50', color: 'white' }}>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Component Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Required Qty</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Req/Motor</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Available</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ backgroundColor: '#2c3e50' }}>Used Qty</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ backgroundColor: '#2c3e50' }}>Remaining</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Can Produce</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Status</th>
                 </tr>
@@ -272,24 +318,34 @@ export default function FiveHP() {
                   
                   const canProduce = Math.floor(component.quantity / req.required_quantity);
                   const isCritical = component.name === criticalComponent;
-                  const bgColor = component.quantity === 0 ? '#ffe6e6' : canProduce === maxProduction ? '#fff9e6' : 'transparent';
+                  const usedQty = req.required_quantity * withdrawQty;
+                  const remaining = component.quantity - usedQty;
+                  const isShortage = remaining < 0;
+                  const bgColor = isShortage ? '#ffe6e6' : component.quantity === 0 ? '#ffe6e6' : canProduce === maxProduction && isCritical ? '#fff9e6' : 'transparent';
                   
                   return (
-                    <tr key={req.component_id} className="border-b" style={{ borderColor: '#E2E2D9', backgroundColor: bgColor }}>
+                    <tr key={req.component_id} className="border-b" style={{ borderColor: '#E2E2D9', backgroundColor: bgColor }} data-testid={`req-row-${req.component_id}`}>
                       <td className="px-4 py-3 font-medium">
                         {req.component_name} {isCritical && <span className="ml-2">🎯</span>}
                       </td>
                       <td className="px-4 py-3"><strong>{req.required_quantity}</strong> {component.unit}</td>
                       <td className="px-4 py-3">{component.quantity.toFixed(1)} {component.unit}</td>
+                      <td className="px-4 py-3 font-semibold" style={{ color: '#e67e22', backgroundColor: 'rgba(243, 156, 18, 0.05)' }} data-testid={`used-${req.component_id}`}>
+                        {usedQty.toFixed(1)} {component.unit}
+                      </td>
+                      <td className="px-4 py-3 font-semibold" style={{ color: isShortage ? '#e74c3c' : '#27ae60', backgroundColor: isShortage ? 'rgba(231, 76, 60, 0.05)' : 'rgba(39, 174, 96, 0.05)' }} data-testid={`remaining-${req.component_id}`}>
+                        {remaining.toFixed(1)} {component.unit}
+                        {isShortage && <span className="ml-1 text-xs">(SHORTAGE)</span>}
+                      </td>
                       <td className="px-4 py-3">
                         <strong style={{ color: canProduce === 0 ? '#e74c3c' : '#27ae60' }}>{canProduce}</strong> motors
                       </td>
                       <td className="px-4 py-3">
                         <span className="px-2 py-1 rounded-full text-xs font-medium" style={{
-                          backgroundColor: component.quantity === 0 ? '#f8d7da' : component.quantity < 10 ? '#fff3cd' : '#d4edda',
-                          color: component.quantity === 0 ? '#721c24' : component.quantity < 10 ? '#856404' : '#155724'
+                          backgroundColor: isShortage ? '#f8d7da' : component.quantity === 0 ? '#f8d7da' : component.quantity < req.required_quantity ? '#fff3cd' : '#d4edda',
+                          color: isShortage ? '#721c24' : component.quantity === 0 ? '#721c24' : component.quantity < req.required_quantity ? '#856404' : '#155724'
                         }}>
-                          {component.quantity === 0 ? 'Critical' : component.quantity < 10 ? 'Low Stock' : 'In Stock'}
+                          {isShortage ? 'Shortage' : component.quantity === 0 ? 'Critical' : component.quantity < req.required_quantity ? 'Low Stock' : 'In Stock'}
                         </span>
                       </td>
                     </tr>
